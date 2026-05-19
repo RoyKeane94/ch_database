@@ -1,0 +1,49 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Companies House Monitor{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body class="min-h-screen bg-paper">
+    <div class="w-full">
+        <header class="border-b border-rule bg-paper px-[4rem] py-8">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h1 class="font-display text-[clamp(1.9rem,3.2vw,2.8rem)] leading-display tracking-[0.02em] text-blue">Companies House Database</h1>
+                </div>
+            </div>
+            <nav class="mt-5 flex flex-wrap items-center gap-8 border-t border-rule pt-4">
+                <a
+                    href="{% url 'core:company_list' %}"
+                    class="font-body text-[0.8rem] font-medium uppercase tracking-wide-5 text-blue transition hover:text-blue-mid"
+                >
+                    Companies
+                </a>
+                <a
+                    href="{% url 'core:upload_csv' %}"
+                    class="font-body text-[0.8rem] font-medium uppercase tracking-wide-5 text-blue transition hover:text-blue-mid"
+                >
+                    Upload CSV
+                </a>
+            </nav>
+        </header>
+
+        {% if messages %}
+            <section class="border-t border-rule bg-paper px-[4rem] py-4">
+            <ul class="space-y-2">
+                {% for message in messages %}
+                    <li class="rounded-xl border border-rule px-4 py-2 text-sm {% if message.tags == 'success' %}bg-blue-light text-blue{% else %}bg-surface text-ink{% endif %}">
+                        {{ message }}
+                    </li>
+                {% endfor %}
+            </ul>
+            </section>
+        {% endif %}
+
+        <main>{% block content %}{% endblock %}</main>
+    </div>
+</body>
+</html>

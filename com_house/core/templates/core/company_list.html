@@ -1,0 +1,150 @@
+{% extends "core/base.html" %}
+
+{% block title %}Company List{% endblock %}
+
+{% block content %}
+    <section class="border-t border-rule bg-paper px-[4rem] py-[5rem]">
+    <div class="grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <aside class="space-y-4">
+            <section class="rounded-2xl border border-rule bg-surface">
+                <div class="border-b border-rule px-5 py-4">
+                    <h2 class="font-body text-[0.62rem] font-semibold uppercase tracking-widest-2 text-blue">Search & Filters</h2>
+                </div>
+                <form method="get" class="space-y-4 px-5 py-5">
+                    <div>
+                        <label for="q" class="mb-1 block font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Search</label>
+                        <input id="q" type="text" name="q" value="{{ search_query }}" placeholder="Name or company number" class="w-full rounded-xl border border-rule bg-paper px-3 py-2.5 text-[0.78rem] text-ink outline-none ring-2 ring-transparent focus:ring-blue-light">
+                    </div>
+                    {% if status_filter %}<input type="hidden" name="company_status" value="{{ status_filter }}">{% endif %}
+                    {% if accounts_category_filter %}<input type="hidden" name="accounts_category" value="{{ accounts_category_filter }}">{% endif %}
+                    {% if enrichment_tier_filter %}<input type="hidden" name="enrichment_tier" value="{{ enrichment_tier_filter }}">{% endif %}
+                    <div class="flex gap-2">
+                        <button type="submit" class="rounded-xl bg-blue px-3 py-2 font-body text-[0.78rem] font-medium uppercase tracking-wide-2 text-paper hover:bg-blue-mid">Apply</button>
+                        <a href="{{ clear_filters_url }}" class="rounded-xl border border-rule bg-paper px-3 py-2 font-body text-[0.78rem] font-medium uppercase tracking-wide-2 text-muted hover:text-ink">Reset</a>
+                    </div>
+                </form>
+            </section>
+
+            <section class="rounded-2xl border border-rule bg-paper">
+                <div class="border-b border-rule px-4 py-3">
+                    <h3 class="font-body text-[0.62rem] font-semibold uppercase tracking-widest-2 text-blue">Status</h3>
+                </div>
+                <ul class="p-2">
+                    {% for item in status_counts %}
+                        <li>
+                            <a href="{{ item.url }}" class="mb-1 flex items-center justify-between rounded-lg border border-transparent px-3 py-2 text-[0.78rem] {% if item.active %}bg-blue-light text-blue{% else %}text-slate hover:border-rule{% endif %}">
+                                <span>{{ item.label }}</span>
+                                <span class="rounded-full px-2 py-0.5 font-body text-[0.6rem] font-medium uppercase tracking-wide-3 {% if item.active %}bg-paper text-blue{% else %}bg-surface text-slate{% endif %}">{{ item.count }}</span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+
+            <section class="rounded-2xl border border-rule bg-paper">
+                <div class="border-b border-rule px-4 py-3">
+                    <h3 class="font-body text-[0.62rem] font-semibold uppercase tracking-widest-2 text-blue">Account Type</h3>
+                </div>
+                <ul class="p-2">
+                    {% for item in account_counts %}
+                        <li>
+                            <a href="{{ item.url }}" class="mb-1 flex items-center justify-between rounded-lg border border-transparent px-3 py-2 text-[0.78rem] {% if item.active %}bg-blue-light text-blue{% else %}text-slate hover:border-rule{% endif %}">
+                                <span>{{ item.label }}</span>
+                                <span class="rounded-full px-2 py-0.5 font-body text-[0.6rem] font-medium uppercase tracking-wide-3 {% if item.active %}bg-paper text-blue{% else %}bg-surface text-slate{% endif %}">{{ item.count }}</span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+
+            <section class="rounded-2xl border border-rule bg-paper">
+                <div class="border-b border-rule px-4 py-3">
+                    <h3 class="font-body text-[0.62rem] font-semibold uppercase tracking-widest-2 text-blue">Enrichment Tier</h3>
+                </div>
+                <ul class="p-2">
+                    {% for item in tier_counts %}
+                        <li>
+                            <a href="{{ item.url }}" class="mb-1 flex items-center justify-between rounded-lg border border-transparent px-3 py-2 text-[0.78rem] {% if item.active %}bg-blue-light text-blue{% else %}text-slate hover:border-rule{% endif %}">
+                                <span>{{ item.label }}</span>
+                                <span class="rounded-full px-2 py-0.5 font-body text-[0.6rem] font-medium uppercase tracking-wide-3 {% if item.active %}bg-paper text-blue{% else %}bg-surface text-slate{% endif %}">{{ item.count }}</span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        </aside>
+
+        <section>
+            <div class="mb-3 flex items-center justify-end">
+                <p class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">{{ total_count }} matching companies</p>
+            </div>
+
+            <div class="space-y-4">
+                {% for company in page_obj %}
+                    <article class="overflow-hidden rounded-2xl border border-rule bg-paper transition hover:bg-white">
+                        <div class="flex border-l-4 {{ company.ui_status_strip }}">
+                            <div class="flex min-w-0 flex-1 items-center gap-4 px-5 py-5">
+                                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-rule bg-blue-light font-body text-[0.78rem] font-medium uppercase tracking-wide-2 text-blue">
+                                    {{ company.ui_initials }}
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <a href="{% url 'core:company_detail' company.company_number %}" class="truncate font-body text-[0.96rem] font-light text-ink hover:text-blue">
+                                            {{ company.company_name|default:"Unknown Company" }}
+                                        </a>
+                                        <span class="rounded-full bg-surface px-2 py-0.5 font-body text-[0.6rem] font-medium uppercase tracking-wide-3 text-slate">{{ company.company_number }}</span>
+                                    </div>
+                                    <p class="mt-2 font-body text-[0.78rem] font-light text-slate leading-[1.7]">
+                                        {{ company.company_status|default:"Unknown status" }} · {{ company.accounts_category|default:"Unknown account type" }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3 border-l border-rule px-4">
+                                <svg width="40" height="40" viewBox="0 0 36 36" class="shrink-0">
+                                    <circle cx="18" cy="18" r="15.5" fill="none" stroke="currentColor" stroke-width="3" class="text-rule"></circle>
+                                    <circle
+                                        cx="18"
+                                        cy="18"
+                                        r="15.5"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="3"
+                                        stroke-linecap="round"
+                                        transform="rotate(-90 18 18)"
+                                        stroke-dasharray="{{ company.ui_ring_progress }},100"
+                                        class="{{ company.ui_ring_class }}"
+                                    ></circle>
+                                </svg>
+                                <div class="text-right">
+                                    <p class="font-body text-[0.62rem] font-semibold uppercase tracking-widest-2 text-blue">{{ company.ui_tier }}</p>
+                                    <p class="font-display text-[1.35rem] leading-none text-ink">{{ company.ui_score }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                {% empty %}
+                    <div class="rounded-2xl border border-rule bg-surface px-5 py-10 text-center text-slate">
+                        No companies found for these filters.
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="mt-5 flex items-center justify-between font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">
+                <div>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</div>
+                <div class="flex gap-2">
+                    {% if page_obj.has_previous %}
+                        <a class="rounded-xl border border-rule bg-paper px-3 py-1.5 font-body text-[0.78rem] font-medium uppercase tracking-wide-2 text-blue hover:bg-blue-light" href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&company_status={{ status_filter }}&accounts_category={{ accounts_category_filter }}&enrichment_tier={{ enrichment_tier_filter }}">
+                            Previous
+                        </a>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                        <a class="rounded-xl border border-rule bg-paper px-3 py-1.5 font-body text-[0.78rem] font-medium uppercase tracking-wide-2 text-blue hover:bg-blue-light" href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&company_status={{ status_filter }}&accounts_category={{ accounts_category_filter }}&enrichment_tier={{ enrichment_tier_filter }}">
+                            Next
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+    </div>
+    </section>
+{% endblock %}

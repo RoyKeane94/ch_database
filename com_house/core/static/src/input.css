@@ -1,0 +1,53 @@
+@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600&family=Bebas+Neue&family=Fraunces:opsz,wght@9..144,300&display=swap");
+@import "tailwindcss";
+
+@source "../../templates/**/*.html";
+
+@theme {
+  --color-ink: #0f0f0f;
+  --color-paper: #ffffff;
+  --color-surface: #efede8;
+  --color-rule: #dddbd4;
+  --color-slate: #3d4a5c;
+  --color-blue: #1a3fcc;
+  --color-blue-mid: #2952e0;
+  --color-blue-light: #eef1fb;
+  --color-muted: rgba(15, 15, 15, 0.45);
+  --color-very-muted: rgba(15, 15, 15, 0.22);
+
+  --font-body: "Barlow", "Segoe UI", Arial, sans-serif;
+  --font-display: "Bebas Neue", "Impact", sans-serif;
+  --font-serif: "Fraunces", Georgia, serif;
+
+  --leading-display: 0.88;
+  --leading-heading: 0.92;
+  --leading-body: 1.7;
+
+  --tracking-widest-2: 0.22em;
+  --tracking-widest-3: 0.3em;
+  --tracking-wide-5: 0.1em;
+  --tracking-wide-3: 0.08em;
+  --tracking-wide-2: 0.06em;
+}
+
+@layer base {
+  body {
+    @apply bg-paper text-ink antialiased font-body text-[0.78rem] font-light leading-body;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  p,
+  li,
+  a,
+  input,
+  button,
+  select {
+    letter-spacing: 0;
+  }
+}
