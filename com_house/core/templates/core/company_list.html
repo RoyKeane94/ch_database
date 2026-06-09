@@ -17,7 +17,6 @@
                     </div>
                     {% if status_filter %}<input type="hidden" name="company_status" value="{{ status_filter }}">{% endif %}
                     {% if accounts_category_filter %}<input type="hidden" name="accounts_category" value="{{ accounts_category_filter }}">{% endif %}
-                    {% if enrichment_tier_filter %}<input type="hidden" name="enrichment_tier" value="{{ enrichment_tier_filter }}">{% endif %}
                     <div class="flex gap-2">
                         <button type="submit" class="rounded-xl bg-blue px-3 py-2 font-body text-[0.78rem] font-medium uppercase tracking-wide-2 text-paper hover:bg-blue-mid">Apply</button>
                         <a href="{{ clear_filters_url }}" class="rounded-xl border border-rule bg-paper px-3 py-2 font-body text-[0.78rem] font-medium uppercase tracking-wide-2 text-muted hover:text-ink">Reset</a>
@@ -56,22 +55,6 @@
                     {% endfor %}
                 </ul>
             </section>
-
-            <section class="rounded-2xl border border-rule bg-paper">
-                <div class="border-b border-rule px-4 py-3">
-                    <h3 class="font-body text-[0.62rem] font-semibold uppercase tracking-widest-2 text-blue">Enrichment Tier</h3>
-                </div>
-                <ul class="p-2">
-                    {% for item in tier_counts %}
-                        <li>
-                            <a href="{{ item.url }}" class="mb-1 flex items-center justify-between rounded-lg border border-transparent px-3 py-2 text-[0.78rem] {% if item.active %}bg-blue-light text-blue{% else %}text-slate hover:border-rule{% endif %}">
-                                <span>{{ item.label }}</span>
-                                <span class="rounded-full px-2 py-0.5 font-body text-[0.6rem] font-medium uppercase tracking-wide-3 {% if item.active %}bg-paper text-blue{% else %}bg-surface text-slate{% endif %}">{{ item.count }}</span>
-                            </a>
-                        </li>
-                    {% endfor %}
-                </ul>
-            </section>
         </aside>
 
         <section>
@@ -99,27 +82,6 @@
                                     </p>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-3 border-l border-rule px-4">
-                                <svg width="40" height="40" viewBox="0 0 36 36" class="shrink-0">
-                                    <circle cx="18" cy="18" r="15.5" fill="none" stroke="currentColor" stroke-width="3" class="text-rule"></circle>
-                                    <circle
-                                        cx="18"
-                                        cy="18"
-                                        r="15.5"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="3"
-                                        stroke-linecap="round"
-                                        transform="rotate(-90 18 18)"
-                                        stroke-dasharray="{{ company.ui_ring_progress }},100"
-                                        class="{{ company.ui_ring_class }}"
-                                    ></circle>
-                                </svg>
-                                <div class="text-right">
-                                    <p class="font-body text-[0.62rem] font-semibold uppercase tracking-widest-2 text-blue">{{ company.ui_tier }}</p>
-                                    <p class="font-display text-[1.35rem] leading-none text-ink">{{ company.ui_score }}</p>
-                                </div>
-                            </div>
                         </div>
                     </article>
                 {% empty %}
@@ -133,12 +95,12 @@
                 <div>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</div>
                 <div class="flex gap-2">
                     {% if page_obj.has_previous %}
-                        <a class="rounded-xl border border-rule bg-paper px-3 py-1.5 font-body text-[0.78rem] font-medium uppercase tracking-wide-2 text-blue hover:bg-blue-light" href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&company_status={{ status_filter }}&accounts_category={{ accounts_category_filter }}&enrichment_tier={{ enrichment_tier_filter }}">
+                        <a class="rounded-xl border border-rule bg-paper px-3 py-1.5 font-body text-[0.78rem] font-medium uppercase tracking-wide-2 text-blue hover:bg-blue-light" href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&company_status={{ status_filter }}&accounts_category={{ accounts_category_filter }}">
                             Previous
                         </a>
                     {% endif %}
                     {% if page_obj.has_next %}
-                        <a class="rounded-xl border border-rule bg-paper px-3 py-1.5 font-body text-[0.78rem] font-medium uppercase tracking-wide-2 text-blue hover:bg-blue-light" href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&company_status={{ status_filter }}&accounts_category={{ accounts_category_filter }}&enrichment_tier={{ enrichment_tier_filter }}">
+                        <a class="rounded-xl border border-rule bg-paper px-3 py-1.5 font-body text-[0.78rem] font-medium uppercase tracking-wide-2 text-blue hover:bg-blue-light" href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&company_status={{ status_filter }}&accounts_category={{ accounts_category_filter }}">
                             Next
                         </a>
                     {% endif %}

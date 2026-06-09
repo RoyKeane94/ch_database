@@ -37,74 +37,16 @@ def _build_filter_url(base_params, **updates):
     return f"?{urlencode(params)}"
 
 
-def _tier_query(tier):
-    high_q = (
-        Q(needs_enrichment=False)
-        & Q(last_enriched_at__isnull=False)
-        & Q(charges_count__gt=0)
-        & Q(psc_count__gt=0)
-    )
-    if tier == "pending":
-        return Q(needs_enrichment=True)
-    if tier == "high":
-        return high_q
-    if tier == "medium":
-        return (
-            Q(needs_enrichment=False)
-            & (Q(last_enriched_at__isnull=False) | Q(charges_count__gt=0) | Q(psc_count__gt=0))
-            & ~high_q
-        )
-    if tier == "low":
-        return (
-            Q(needs_enrichment=False)
-            & Q(last_enriched_at__isnull=True)
-            & Q(charges_count=0)
-            & Q(psc_count=0)
-        )
-    return Q()
-
-
-def _tier_from_company(company):
-    score = 0
-    if company.last_enriched_at:
-        score += 35
-    if company.sic_codes:
-        score += 20
-    if getattr(company, "charges_count", 0) > 0:
-        score += 25
-    if getattr(company, "psc_count", 0) > 0:
-        score += 20
-    if not company.needs_enrichment:
-        score += 10
-    score = min(score, 100)
-
-    if company.needs_enrichment and not company.last_enriched_at:
-        tier = "pending"
-    elif score >= 80:
-        tier = "high"
-    elif score >= 50:
-        tier = "medium"
-    else:
-        tier = "low"
-    return tier, score
-
-
 def company_list(request):
     search_query = request.GET.get("q", "").strip()
     status_filter = request.GET.get("company_status", "").strip()
     accounts_category_filter = request.GET.get("accounts_category", "").strip()
-    enrichment_tier_filter = request.GET.get("enrichment_tier", "").strip()
 
     sidebar_scope = Company.objects.all()
     if search_query:
         sidebar_scope = sidebar_scope.filter(
             Q(company_name__icontains=search_query) | Q(company_number__icontains=search_query)
         )
-
-    sidebar_scope = sidebar_scope.annotate(
-        charges_count=Count("charges", distinct=True),
-        psc_count=Count("psc_events", distinct=True),
-    )
 
     queryset = sidebar_scope
 
@@ -115,15 +57,11 @@ def company_list(request):
         base_params["company_status"] = status_filter
     if accounts_category_filter:
         base_params["accounts_category"] = accounts_category_filter
-    if enrichment_tier_filter:
-        base_params["enrichment_tier"] = enrichment_tier_filter
 
     if status_filter:
         queryset = queryset.filter(company_status=status_filter)
     if accounts_category_filter:
         queryset = queryset.filter(accounts_category=accounts_category_filter)
-    if enrichment_tier_filter:
-        queryset = queryset.filter(_tier_query(enrichment_tier_filter))
 
     queryset = queryset.order_by("company_name", "company_number")
 
@@ -132,23 +70,12 @@ def company_list(request):
     page_obj = paginator.get_page(request.GET.get("page"))
 
     for company in page_obj.object_list:
-        tier, score = _tier_from_company(company)
         company.ui_initials = _company_initials(company)
-        company.ui_tier = tier
-        company.ui_score = score
-        company.ui_ring_circumference = 100
-        company.ui_ring_progress = score
         company.ui_status_strip = {
             "active": "border-l-blue",
             "dissolved": "border-l-slate",
             "liquidation": "border-l-slate",
         }.get((company.company_status or "").lower(), "border-l-rule")
-        company.ui_ring_class = {
-            "high": "text-blue",
-            "medium": "text-blue-mid",
-            "pending": "text-slate",
-            "low": "text-very-muted",
-        }.get(tier, "text-blue")
 
     status_counts_raw = (
         sidebar_scope.values("company_status")
@@ -184,32 +111,12 @@ def company_list(request):
         for item in account_counts_raw
     ]
 
-    tier_labels = {
-        "pending": "Pending",
-        "high": "High",
-        "medium": "Medium",
-        "low": "Low",
-    }
-    tier_counts = []
-    for tier_value, tier_label in tier_labels.items():
-        count = sidebar_scope.filter(_tier_query(tier_value)).count()
-        tier_counts.append(
-            {
-                "label": tier_label,
-                "value": tier_value,
-                "count": count,
-                "active": enrichment_tier_filter == tier_value,
-                "url": _build_filter_url(base_params, enrichment_tier=tier_value),
-            }
-        )
-
     context = {
         "page_obj": page_obj,
         "total_count": total_count,
         "search_query": search_query,
         "status_filter": status_filter,
         "accounts_category_filter": accounts_category_filter,
-        "enrichment_tier_filter": enrichment_tier_filter,
         "status_options": Company.objects.exclude(company_status="").values_list(
             "company_status", flat=True
         ).distinct(),
@@ -218,7 +125,6 @@ def company_list(request):
         ).values_list("accounts_category", flat=True).distinct(),
         "status_counts": status_counts,
         "account_counts": account_counts,
-        "tier_counts": tier_counts,
         "clear_filters_url": _build_filter_url({"q": search_query} if search_query else {}),
     }
     return render(request, "core/company_list.html", context)
