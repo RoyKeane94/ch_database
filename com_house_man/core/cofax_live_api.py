@@ -270,9 +270,12 @@ def _on_this_day():
 
 
 def cofax_live(request):
-    cached = cache.get(CACHE_KEY)
-    if cached:
-        return JsonResponse(cached)
+    try:
+        cached = cache.get(CACHE_KEY)
+        if cached:
+            return JsonResponse(cached)
+    except Exception:
+        log.warning("COFAX live cache unavailable; rebuilding payload.")
 
     stats = _register_stats()
     data = {
@@ -299,5 +302,8 @@ def cofax_live(request):
                 if key == "tfl_lines":
                     data[key] = [TFL_DISTRICT_FALLBACK]
 
-    cache.set(CACHE_KEY, data, CACHE_SECONDS)
+    try:
+        cache.set(CACHE_KEY, data, CACHE_SECONDS)
+    except Exception:
+        log.warning("Unable to write COFAX live payload to cache.")
     return JsonResponse(data)

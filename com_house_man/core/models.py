@@ -43,6 +43,15 @@ class Company(models.Model):
 
     class Meta:
         ordering = ["company_name", "company_number"]
+        indexes = [
+            models.Index(fields=["needs_enrichment"], name="core_co_needs_enr_idx"),
+            models.Index(
+                fields=["needs_enrichment", "last_fetched_at"],
+                name="core_co_enrich_stat_idx",
+            ),
+            models.Index(fields=["company_status"], name="core_co_status_idx"),
+            models.Index(fields=["company_name"], name="core_co_name_idx"),
+        ]
 
     def __str__(self):
         return f"{self.company_number} - {self.company_name or 'Unknown'}"

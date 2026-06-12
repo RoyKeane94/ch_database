@@ -1,7 +1,11 @@
+import logging
+
 from django.core.cache import cache
 from django.db.models import Count, Q
 
 from core.models import Company
+
+logger = logging.getLogger(__name__)
 
 SYNC_BAR_BLOCKS = 30
 SYNC_STATS_CACHE_KEY = "company_sync_stats"
@@ -29,13 +33,19 @@ def _aggregate_sync_stats():
 
 def get_sync_stats(*, use_cache=True):
     if use_cache:
-        stats = cache.get(SYNC_STATS_CACHE_KEY)
-        if stats is not None:
-            return stats
+        try:
+            stats = cache.get(SYNC_STATS_CACHE_KEY)
+            if stats is not None:
+                return stats
+        except Exception:
+            logger.warning("Sync stats cache unavailable; querying database directly.")
 
     stats = _aggregate_sync_stats()
     if use_cache:
-        cache.set(SYNC_STATS_CACHE_KEY, stats, SYNC_STATS_CACHE_SECONDS)
+        try:
+            cache.set(SYNC_STATS_CACHE_KEY, stats, SYNC_STATS_CACHE_SECONDS)
+        except Exception:
+            logger.warning("Unable to write sync stats to cache.")
     return stats
 
 
