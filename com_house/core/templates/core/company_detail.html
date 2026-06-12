@@ -1,104 +1,99 @@
 {% extends "core/base.html" %}
 
-{% block title %}{{ company.company_number }}{% endblock %}
+{% block title %}P100 {{ company.company_number }}{% endblock %}
+
+{% block sidebar %}
+<aside class="tt-sidebar">
+    <section>
+        <div class="tt-panel-title">COMPANY</div>
+        <div class="tt-panel-body">
+            <div class="tt-company-name">{{ company.company_name|default:"UNKNOWN"|upper }}</div>
+            <div class="tt-company-number">{{ company.company_number }}</div>
+            <div class="tt-subsection">
+                <a class="tt-btn" href="{% url 'core:company_list' %}">&lt; BACK TO INDEX</a>
+            </div>
+        </div>
+    </section>
+    {% include "core/includes/sync_panel.html" %}
+</aside>
+{% endblock %}
 
 {% block content %}
-    <section class="border-t border-rule bg-paper px-[4rem] py-[5rem]">
-    <section class="mb-6 rounded-2xl border border-rule bg-paper">
-        <div class="border-b border-rule px-6 py-5">
-            <p class="font-body text-[0.62rem] font-semibold uppercase tracking-widest-2 text-blue">Company Detail</p>
-            <h2 class="mt-3 font-display text-[clamp(1.6rem,2.8vw,2.4rem)] leading-heading tracking-[0.02em] text-ink">{{ company.company_name|default:"Unknown Company" }}</h2>
-            <p class="mt-2 font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">{{ company.company_number }}</p>
+    <div class="tt-main-title">COMPANY RECORD</div>
+
+    <section>
+        <div class="tt-panel-body">
+            <div class="tt-detail-grid">
+                <div>
+                    <div class="tt-detail-row"><span class="tt-detail-key">STATUS </span><span class="tt-detail-val tt-status {{ company.tt_status_class }}">{{ company.tt_status_label }}</span></div>
+                    <div class="tt-detail-row"><span class="tt-detail-key">TYPE </span><span class="tt-detail-val">{{ company.tt_type_label }}</span></div>
+                    <div class="tt-detail-row"><span class="tt-detail-key">JURISDICTION </span><span class="tt-detail-val">{{ company.jurisdiction|default:"-"|upper }}</span></div>
+                    <div class="tt-detail-row"><span class="tt-detail-key">CREATED </span><span class="tt-detail-val">{{ company.date_of_creation|date:"Y-m-d"|default:"-" }}</span></div>
+                    <div class="tt-detail-row"><span class="tt-detail-key">ADDRESS </span><span class="tt-detail-val">{{ company.registered_address_display|default:"-"|upper }}</span></div>
+                </div>
+                <div>
+                    <div class="tt-detail-row"><span class="tt-detail-key">ACCOUNTS DUE </span><span class="tt-detail-val">{{ company.accounts_next_due|date:"Y-m-d"|default:"-" }}{% if company.accounts_overdue %} OVERDUE{% endif %}</span></div>
+                    <div class="tt-detail-row"><span class="tt-detail-key">CONFIRM DUE </span><span class="tt-detail-val">{{ company.confirmation_next_due|date:"Y-m-d"|default:"-" }}{% if company.confirmation_overdue %} OVERDUE{% endif %}</span></div>
+                    <div class="tt-detail-row"><span class="tt-detail-key">INSOLVENCY </span><span class="tt-detail-val">{% if company.has_insolvency_history %}YES{% else %}NO{% endif %}</span></div>
+                    <div class="tt-detail-row"><span class="tt-detail-key">SIC CODES </span><span class="tt-detail-val">{{ company.sic_codes|join:", "|default:"-" }}</span></div>
+                    <div class="tt-detail-row"><span class="tt-detail-key">LAST FETCH </span><span class="tt-detail-val">{{ company.last_fetched_at|default:"NOT YET SYNCED" }}</span></div>
+                </div>
+            </div>
+            {% if company.enrichment_error %}
+                <div class="tt-subsection tt-hint">FETCH ERROR: {{ company.enrichment_error|upper }}</div>
+            {% endif %}
         </div>
-        <div class="grid gap-6 px-6 py-6 md:grid-cols-3">
-            <div class="space-y-2 text-[0.78rem]">
-                <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Category:</span> <span class="text-slate">{{ company.company_category|default:"-" }}</span></p>
-                <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Status:</span> <span class="text-slate">{{ company.company_status|default:"-" }}</span></p>
-                <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Country:</span> <span class="text-slate">{{ company.country_of_origin|default:"-" }}</span></p>
-                <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Incorporated:</span> <span class="text-slate">{{ company.incorporated_on|date:"Y-m-d"|default:"-" }}</span></p>
-            </div>
-            <div class="space-y-2 text-[0.78rem]">
-                <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Year End:</span> <span class="text-slate">{{ company.year_end_display|default:"-" }}</span></p>
-                <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Last Accounts:</span> <span class="text-slate">{{ company.accounts_last_made_up|date:"Y-m-d"|default:"-" }}</span></p>
-                <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Accounts Category:</span> <span class="text-slate">{{ company.accounts_category|default:"-" }}</span></p>
-                <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">SIC Codes:</span> <span class="text-slate">{{ company.sic_codes|join:", "|default:"-" }}</span></p>
-            </div>
-            <div class="rounded-xl border border-rule bg-surface p-4 text-sm">
-                <p class="font-body text-[0.62rem] font-semibold uppercase tracking-widest-2 text-blue">Enrichment</p>
-                {% if company.last_enriched_at %}
-                    <p class="mt-2 inline-flex rounded-full border border-rule bg-blue-light px-2.5 py-1 font-body text-[0.6rem] font-medium uppercase tracking-wide-3 text-blue">
-                        Last enriched {{ company.last_enriched_at }}
-                    </p>
-                {% elif company.needs_enrichment %}
-                    <p class="mt-2 inline-flex rounded-full border border-rule bg-blue-light px-2.5 py-1 font-body text-[0.6rem] font-medium uppercase tracking-wide-3 text-blue">
-                        Pending enrichment
-                    </p>
-                {% else %}
-                    <p class="mt-2 inline-flex rounded-full border border-rule bg-paper px-2.5 py-1 font-body text-[0.6rem] font-medium uppercase tracking-wide-3 text-slate">
-                        Enrichment complete
-                    </p>
-                {% endif %}
-            </div>
-        </div>
-        {% if company.enrichment_error %}
-            <div class="border-t border-rule px-6 py-4 text-sm">
-                <p class="rounded-xl border border-rule bg-surface px-3 py-2 text-ink">
-                    <span class="font-semibold">Last enrichment error:</span> {{ company.enrichment_error }}
-                </p>
-            </div>
-        {% endif %}
     </section>
 
-    <section class="mb-6 overflow-hidden rounded-2xl border border-rule bg-paper">
-        <div class="border-b border-rule px-6 py-4">
-            <h3 class="font-body text-[0.62rem] font-semibold uppercase tracking-widest-2 text-blue">Charges</h3>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
-                <thead class="bg-surface text-[0.68rem] uppercase tracking-wide-5 text-muted">
+    <section class="tt-subsection">
+        <div class="tt-main-title">CHARGES ({{ charges|length }})</div>
+        <table class="tt-table">
+            <thead>
+                <tr>
+                    <th>CODE</th>
+                    <th>PERSONS ENTITLED</th>
+                    <th>STATUS</th>
+                    <th>CREATED</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for charge in charges %}
                     <tr>
-                        <th class="px-6 py-3 text-left">Holder</th>
-                        <th class="px-6 py-3 text-left">Type</th>
-                        <th class="px-6 py-3 text-left">Status</th>
-                        <th class="px-6 py-3 text-left">Created</th>
-                        <th class="px-6 py-3 text-left">Satisfied</th>
+                        <td>{{ charge.charge_code }}</td>
+                        <td>{% for person in charge.persons_entitled.all %}{{ person.name|upper }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</td>
+                        <td>{{ charge.status|default:"-"|upper }}</td>
+                        <td>{{ charge.created_on|date:"Y-m-d"|default:"-" }}</td>
                     </tr>
-                </thead>
-                <tbody class="divide-y divide-rule">
-                    {% for charge in charges %}
-                        <tr class="hover:bg-surface">
-                            <td class="px-6 py-3 text-slate">{{ charge.holder_name|default:"-" }}</td>
-                            <td class="px-6 py-3 text-slate">{{ charge.charge_type|default:"-" }}</td>
-                            <td class="px-6 py-3 text-slate">{{ charge.status|default:"-" }}</td>
-                            <td class="px-6 py-3 text-slate">{{ charge.created_on|date:"Y-m-d"|default:"-" }}</td>
-                            <td class="px-6 py-3 text-slate">{{ charge.satisfied_on|date:"Y-m-d"|default:"-" }}</td>
-                        </tr>
-                    {% empty %}
-                        <tr><td colspan="5" class="px-6 py-7 text-center text-muted">No charges recorded.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                {% empty %}
+                    <tr><td colspan="4" class="tt-empty">NO CHARGES ON FILE</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </section>
 
-    <section class="rounded-2xl border border-rule bg-paper">
-        <div class="border-b border-rule px-6 py-4">
-            <h3 class="font-body text-[0.62rem] font-semibold uppercase tracking-widest-2 text-blue">Persons With Significant Control</h3>
-        </div>
-        <ul class="divide-y divide-rule">
-            {% for psc in psc_events %}
-                <li class="px-6 py-4 text-sm">
-                    <p class="font-body text-[0.78rem] font-light text-ink">{{ psc.psc_name|default:"Unknown" }}</p>
-                    <p class="text-slate">{{ psc.psc_kind|default:"-" }}</p>
-                    <p class="mt-1 font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Controls: {{ psc.nature_of_control|join:", "|default:"-" }}</p>
-                    <p class="mt-1 font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">
-                        Notified: {{ psc.notified_on|date:"Y-m-d"|default:"-" }} | Ceased: {{ psc.ceased_on|date:"Y-m-d"|default:"-" }}
-                    </p>
-                </li>
-            {% empty %}
-                <li class="px-6 py-7 text-center text-sm text-muted">No PSC events recorded.</li>
-            {% endfor %}
-        </ul>
-    </section>
+    <section class="tt-subsection">
+        <div class="tt-main-title">PSC REGISTER ({{ pscs|length }})</div>
+        <table class="tt-table">
+            <thead>
+                <tr>
+                    <th>NAME</th>
+                    <th>KIND</th>
+                    <th>NOTIFIED</th>
+                    <th>CEASED</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for psc in pscs %}
+                    <tr>
+                        <td>{{ psc.name|default:"UNKNOWN"|upper }}</td>
+                        <td>{{ psc.kind|default:"-"|upper }}</td>
+                        <td>{{ psc.notified_on|date:"Y-m-d"|default:"-" }}</td>
+                        <td>{% if psc.ceased %}{{ psc.ceased_on|date:"Y-m-d"|default:"YES" }}{% else %}-{% endif %}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="4" class="tt-empty">NO PSC RECORDS ON FILE</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </section>
 {% endblock %}

@@ -1,0 +1,15 @@
+[phases.setup]
+nixPkgs = ["python312", "nodejs_20"]
+
+[phases.install]
+cmds = [
+  "pip install -r requirements.txt",
+  "npm ci",
+  "npm run build:css",
+]
+
+[phases.build]
+cmds = ["python manage.py collectstatic --noinput"]
+
+[start]
+cmd = "gunicorn com_house.wsgi --log-file - --bind 0.0.0.0:$PORT --workers ${WEB_CONCURRENCY:-2} --timeout 120"

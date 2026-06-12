@@ -1,0 +1,26 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COFAX — P100</title>
+    <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+    <link rel="stylesheet" href="{% static 'css/landing.css' %}">
+</head>
+<body>
+    <h1 class="sr-only">COFAX — the Companies House register, teletext style</h1>
+
+    <main class="tv" id="tv" aria-label="COFAX — the Companies House register, teletext style">
+        <div class="static" id="static" aria-hidden="true"></div>
+        <div class="tv-scan" aria-hidden="true"></div>
+        <div id="screen"></div>
+    </main>
+
+    {{ cofax_config|json_script:"cofax-config" }}
+    <script>
+        window.COFAX = JSON.parse(document.getElementById("cofax-config").textContent);
+    </script>
+    <script src="{% static 'js/landing.js' %}"></script>
+</body>
+</html>

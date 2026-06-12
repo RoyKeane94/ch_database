@@ -1,0 +1,2 @@
+release: python manage.py migrate --noinput && python manage.py createcachetable && python manage.py collectstatic --noinput
+web: gunicorn com_house.wsgi --log-file - --bind 0.0.0.0:$PORT --workers ${WEB_CONCURRENCY:-2} --timeout 120

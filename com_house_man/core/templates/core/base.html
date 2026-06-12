@@ -4,14 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}COMPANYBASE{% endblock %}</title>
+    <title>{% block title %}COFAX{% endblock %}</title>
     <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
     <link rel="stylesheet" href="{% static 'css/teletext.css' %}">
 </head>
 <body>
     <div class="tt-screen">
         <header class="tt-topbar">
-            <span>P100 COMPANYBASE</span>
+            <a href="{% url 'core:landing' %}">P100 COFAX</a>
             <span id="tt-clock">--- -- --- --:--</span>
         </header>
 
@@ -35,15 +35,13 @@
 
         <div class="tt-body">
             {% block sidebar %}
-            <aside class="tt-sidebar">
                 {% include "core/includes/sync_panel.html" %}
-            </aside>
             {% endblock %}
             <main class="tt-main">{% block content %}{% endblock %}</main>
         </div>
 
         <footer class="tt-footer">
-            <span>100 COMPANYBASE</span>
+            <span>100 COFAX</span>
             <span>FASTTEXT: RED=SEARCH GRN=UPLOAD</span>
             <span>BBC2 P100</span>
         </footer>

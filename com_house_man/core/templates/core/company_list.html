@@ -1,0 +1,104 @@
+{% extends "core/base.html" %}
+
+{% block title %}P100 SEARCH{% endblock %}
+
+{% block sidebar %}
+<aside class="tt-sidebar">
+    <section>
+        <div class="tt-panel-title">SEARCH</div>
+        <div class="tt-panel-body">
+            <form method="get">
+                <label class="tt-label" for="q">QUERY</label>
+                <input id="q" class="tt-input" type="text" name="q" value="{{ search_query }}" placeholder="NAME OR NUMBER">
+
+                <div class="tt-label">STATUS FILTER</div>
+                {% for item in status_options %}
+                    <label class="tt-check">
+                        <input type="checkbox" name="status" value="{{ item.value }}" {% if item.checked %}checked{% endif %}>
+                        {{ item.label }} ({{ item.count }})
+                    </label>
+                {% empty %}
+                    <p class="tt-hint">NO STATUS DATA YET</p>
+                {% endfor %}
+
+                <div class="tt-label">ACCOUNT TYPE</div>
+                {% for item in account_options %}
+                    <label class="tt-check">
+                        <input type="checkbox" name="accounts_category" value="{{ item.value }}" {% if item.checked %}checked{% endif %}>
+                        {{ item.label }} ({{ item.count }})
+                    </label>
+                {% empty %}
+                    <p class="tt-hint">NO ACCOUNT TYPES YET</p>
+                {% endfor %}
+
+                <div class="tt-btn-row">
+                    <button class="tt-btn" type="submit">GO</button>
+                    <a class="tt-btn" href="{{ clear_filters_url }}">CLR</a>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <section class="tt-panel-yellow">
+        <div class="tt-panel-title">UPLOAD DATA</div>
+        <div class="tt-panel-body tt-hint">
+            PRESS <a href="{% url 'core:upload_csv' %}">GREEN (UPLOAD)</a> TO ADD CSV FILE TO DATABASE
+        </div>
+    </section>
+
+    {% include "core/includes/sync_panel.html" %}
+</aside>
+{% endblock %}
+
+{% block content %}
+    <div class="tt-main-title">RESULTS</div>
+    <div class="tt-page-info">
+        PAGE {{ page_obj.number }}/{{ page_obj.paginator.num_pages }} — {{ total_count }} MATCHING
+    </div>
+
+    <section>
+        <table class="tt-table">
+            <thead>
+                <tr>
+                    <th>COMPANY NAME</th>
+                    <th>STATUS</th>
+                    <th>TYPE</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for company in page_obj %}
+                    <tr>
+                        <td>
+                            <div class="tt-company-name">
+                                <a href="{% url 'core:company_detail' company.company_number %}">
+                                    {{ company.company_name|default:"UNKNOWN COMPANY"|upper }}
+                                </a>
+                            </div>
+                            <div class="tt-company-number">{{ company.company_number }}</div>
+                        </td>
+                        <td>
+                            <span class="tt-status {{ company.tt_status_class }}">
+                                <span class="tt-dot"></span>{{ company.tt_status_label }}
+                            </span>
+                        </td>
+                        <td class="tt-type">{{ company.tt_type_label }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="3" class="tt-empty">NO COMPANIES FOUND FOR THESE FILTERS</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <div class="tt-pager">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if page_query %}&{{ page_query }}{% endif %}">&lt; PREV</a>
+        {% endif %}
+        <span>[ PAGE {{ page_obj.number }} OF {{ page_obj.paginator.num_pages }} ]</span>
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if page_query %}&{{ page_query }}{% endif %}">NEXT &gt;</a>
+        {% endif %}
+    </div>
+{% endblock %}
