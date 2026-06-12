@@ -34,4 +34,4 @@ RUN DEBUG=True \
 
 EXPOSE 8000
 
-CMD gunicorn com_house.wsgi --log-file - --bind 0.0.0.0:${PORT:-8000} --workers ${WEB_CONCURRENCY:-2} --timeout 120
+CMD ["sh", "-c", "gunicorn com_house.wsgi --log-file - --bind 0.0.0.0:${PORT:-8000} --workers ${WEB_CONCURRENCY:-2} --timeout 120"]

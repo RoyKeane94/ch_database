@@ -24,7 +24,20 @@ if _allowed_hosts_raw:
 elif DEBUG:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]"]
 else:
-    raise ImproperlyConfigured("Set ALLOWED_HOSTS when DEBUG is False.")
+    ALLOWED_HOSTS = []
+
+for _railway_host in (
+    os.environ.get("RAILWAY_PUBLIC_DOMAIN", ""),
+    os.environ.get("RAILWAY_PRIVATE_DOMAIN", ""),
+):
+    host = _railway_host.strip()
+    if host and host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(host)
+
+if not DEBUG and not ALLOWED_HOSTS:
+    raise ImproperlyConfigured(
+        "Set ALLOWED_HOSTS or deploy on Railway with RAILWAY_PUBLIC_DOMAIN set."
+    )
 
 COMPANIES_HOUSE_API_KEY = os.environ.get("COMPANIES_HOUSE_API_KEY", "")
 if not DEBUG and not COMPANIES_HOUSE_API_KEY:
@@ -81,11 +94,11 @@ def _database_url():
     if database_url:
         return database_url
 
-    db_host = os.environ.get("DB_HOST")
-    db_name = os.environ.get("DB_NAME")
-    db_user = os.environ.get("DB_USER")
-    db_password = os.environ.get("DB_PASSWORD")
-    db_port = os.environ.get("DB_PORT", "5432")
+    db_host = os.environ.get("DB_HOST") or os.environ.get("PGHOST")
+    db_name = os.environ.get("DB_NAME") or os.environ.get("PGDATABASE")
+    db_user = os.environ.get("DB_USER") or os.environ.get("PGUSER")
+    db_password = os.environ.get("DB_PASSWORD") or os.environ.get("PGPASSWORD")
+    db_port = os.environ.get("DB_PORT") or os.environ.get("PGPORT", "5432")
 
     if all([db_host, db_name, db_user, db_password]):
         return f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
@@ -94,7 +107,8 @@ def _database_url():
         return f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
 
     raise ImproperlyConfigured(
-        "Set DATABASE_URL or DB_HOST/DB_NAME/DB_USER/DB_PASSWORD when DEBUG is False."
+        "Set DATABASE_URL or DB_HOST/DB_NAME/DB_USER/DB_PASSWORD "
+        "(or Railway PGHOST/PGDATABASE/PGUSER/PGPASSWORD) when DEBUG is False."
     )
 
 
@@ -133,12 +147,13 @@ CACHES = {
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "true").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }
+    # Railway terminates TLS at the edge; internal healthchecks use plain HTTP.
+    _on_railway = bool(os.environ.get("RAILWAY_ENVIRONMENT"))
+    SECURE_SSL_REDIRECT = (
+        not _on_railway
+        and os.environ.get("SECURE_SSL_REDIRECT", "true").strip().lower()
+        in {"1", "true", "yes", "on"}
+    )
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "31536000"))

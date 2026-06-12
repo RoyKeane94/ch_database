@@ -49,12 +49,19 @@ def sync_status_api(request):
 def health_check(request):
     from django.db import connection
 
+    db_ok = True
     try:
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
     except Exception:
-        return JsonResponse({"status": "error", "database": "unavailable"}, status=503)
-    return JsonResponse({"status": "ok", "database": "ok"})
+        db_ok = False
+
+    return JsonResponse(
+        {
+            "status": "ok",
+            "database": "ok" if db_ok else "unavailable",
+        }
+    )
 
 
 def _landing_context():
