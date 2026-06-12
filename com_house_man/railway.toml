@@ -3,10 +3,7 @@ builder = "RAILPACK"
 buildCommand = "npm ci && npm run build:css && python manage.py collectstatic --noinput"
 
 [deploy]
-preDeployCommand = [
-  "python manage.py migrate --noinput",
-  "python manage.py createcachetable",
-]
+preDeployCommand = "python manage.py migrate --noinput && python manage.py createcachetable"
 startCommand = "gunicorn com_house.wsgi --log-file - --bind 0.0.0.0:$PORT --workers ${WEB_CONCURRENCY:-2} --timeout 120"
 healthcheckPath = "/health/"
 healthcheckTimeout = 120

@@ -3,9 +3,6 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-preDeployCommand = [
-  "python manage.py migrate --noinput",
-  "python manage.py createcachetable",
-]
+preDeployCommand = "python manage.py migrate --noinput && python manage.py createcachetable"
 healthcheckPath = "/health/"
 healthcheckTimeout = 120
