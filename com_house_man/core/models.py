@@ -76,6 +76,13 @@ class Company(models.Model):
         ]
         return ", ".join(part for part in parts if part)
 
+    @property
+    def companies_house_url(self):
+        return (
+            "https://find-and-update.company-information.service.gov.uk/company/"
+            f"{self.company_number}"
+        )
+
 
 class PersonEntitled(models.Model):
     name = models.CharField(max_length=255, unique=True)
