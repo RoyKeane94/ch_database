@@ -421,6 +421,137 @@ a:hover {
   font-size: 18px;
 }
 
+/* Ceefax error pages (standalone — no context processors) */
+.tt-error-body {
+  overflow-x: hidden;
+}
+
+.tt-error-screen {
+  min-height: 100vh;
+}
+
+.tt-error-mast {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px;
+  background: var(--tt-red);
+  color: var(--tt-white);
+  font-size: 28px;
+  letter-spacing: 0.12em;
+  text-align: center;
+}
+
+.tt-error-mast-left,
+.tt-error-mast-right {
+  font-size: 22px;
+}
+
+.tt-error-mast-code {
+  font-size: 48px;
+  line-height: 1;
+  text-shadow: 2px 2px 0 var(--tt-black);
+}
+
+.tt-error-headline {
+  padding: 10px 8px;
+  background: var(--tt-blue);
+  color: var(--tt-yellow);
+  font-size: 26px;
+  letter-spacing: 0.08em;
+  text-align: center;
+  border-bottom: 2px solid var(--tt-cyan);
+}
+
+.tt-error-panel {
+  margin: 8px;
+  border: 2px solid var(--tt-green);
+}
+
+.tt-error-panel-title {
+  background: var(--tt-magenta);
+  color: var(--tt-white);
+  animation: tt-blink 1.2s step-end infinite;
+}
+
+.tt-error-line {
+  margin: 0 0 8px;
+  color: var(--tt-cyan);
+  font-size: 22px;
+  letter-spacing: 0.04em;
+}
+
+.tt-error-line:last-of-type {
+  margin-bottom: 0;
+}
+
+.tt-error-path {
+  margin: 12px 0 0;
+  padding-top: 8px;
+  border-top: 1px dashed var(--tt-green);
+  word-break: break-all;
+}
+
+.tt-error-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+}
+
+.tt-error-btn {
+  flex: 1;
+  min-width: 140px;
+  padding: 10px 8px;
+  text-align: center;
+  color: var(--tt-black);
+  font-size: 22px;
+  letter-spacing: 0.1em;
+  border: 2px solid var(--tt-white);
+}
+
+.tt-error-btn-red {
+  background: var(--tt-red);
+}
+
+.tt-error-btn-cyan {
+  background: var(--tt-cyan);
+}
+
+.tt-error-btn-yellow {
+  background: var(--tt-yellow);
+}
+
+.tt-error-btn:hover {
+  color: var(--tt-black);
+  outline: 3px solid var(--tt-white);
+}
+
+.tt-error-tick {
+  margin: 8px;
+  overflow: hidden;
+  border: 2px solid var(--tt-yellow);
+  background: var(--tt-black);
+}
+
+.tt-error-tick-inner {
+  padding: 6px 0;
+  color: var(--tt-green);
+  font-size: 20px;
+  white-space: nowrap;
+  animation: tt-error-scroll 18s linear infinite;
+}
+
+@keyframes tt-error-scroll {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
 @media (max-width: 760px) {
   .tt-body {
     grid-template-columns: 1fr;

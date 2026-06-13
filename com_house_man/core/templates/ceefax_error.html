@@ -1,0 +1,60 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P{{ page }} — COFAX ERROR {{ error_code }}</title>
+    <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+    <link rel="stylesheet" href="{% static 'css/teletext.css' %}">
+</head>
+<body class="tt-error-body">
+    <div class="tt-screen tt-error-screen">
+        <header class="tt-topbar">
+            <a href="{{ home_url }}">P100 COFAX</a>
+            <span>P{{ page }} ERROR</span>
+        </header>
+
+        <div class="tt-error-mast">
+            <span class="tt-error-mast-left">CEEFAX</span>
+            <span class="tt-error-mast-code">{{ error_code }}</span>
+            <span class="tt-error-mast-right">BBC</span>
+        </div>
+
+        <div class="tt-error-headline">{{ headline }}</div>
+
+        <section class="tt-error-panel">
+            <div class="tt-panel-title tt-error-panel-title">*** PLEASE STAND BY ***</div>
+            <div class="tt-panel-body">
+                {% for line in lines %}
+                    <p class="tt-error-line">{{ line }}</p>
+                {% endfor %}
+                {% if path %}
+                    <p class="tt-error-path">
+                        <span class="tt-detail-key">REQUEST </span>
+                        <span class="tt-detail-val">{{ path }}</span>
+                    </p>
+                {% endif %}
+            </div>
+        </section>
+
+        <nav class="tt-error-nav" aria-label="Recovery options">
+            <a class="tt-error-btn tt-error-btn-red" href="{{ home_url }}">P100 HOME</a>
+            <a class="tt-error-btn tt-error-btn-cyan" href="{{ search_url }}">P101 SEARCH</a>
+            <a class="tt-error-btn tt-error-btn-yellow" href="{{ help_url }}">HELP</a>
+        </nav>
+
+        <div class="tt-error-tick">
+            <div class="tt-error-tick-inner">
+                {{ hint|upper }} +++ ERROR {{ error_code }} +++ COFAX COMPANIES HOUSE +++ NO SIGNAL FROM THAT PAGE +++
+            </div>
+        </div>
+
+        <footer class="tt-footer">
+            <span>100 COFAX</span>
+            <span>ERROR {{ error_code }}</span>
+            <span>BBC2 P{{ page }}</span>
+        </footer>
+    </div>
+</body>
+</html>

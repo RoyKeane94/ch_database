@@ -1,7 +1,8 @@
+from django.conf import settings
 from django.urls import path
 from django.views.generic import RedirectView
 
-from . import views
+from . import error_views, views
 from .cofax_live_api import cofax_live
 
 app_name = "core"
@@ -25,3 +26,8 @@ urlpatterns = [
     path("api/cofax/live/", cofax_live, name="cofax_live"),
     path("company/<str:company_number>/", views.company_detail, name="company_detail"),
 ]
+
+if settings.DEBUG:
+    urlpatterns.append(
+        path("test-error/<str:code>/", error_views.error_preview, name="error_preview"),
+    )
