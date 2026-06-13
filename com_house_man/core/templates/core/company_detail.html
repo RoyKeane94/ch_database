@@ -69,7 +69,11 @@
                     {% for charge in charges %}
                         <tr class="hover:bg-surface">
                             <td class="px-6 py-3 text-slate">{{ charge.charge_code|default:"-" }}</td>
-                            <td class="px-6 py-3 text-slate">{% for person in charge.persons_entitled.all %}{{ person.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</td>
+                            <td class="px-6 py-3 text-slate">
+                                {% for person in charge.persons_entitled.all %}
+                                    <a href="{% url 'core:company_list' %}?holder={{ person.id }}">{{ person.name }}</a>{% if not forloop.last %}, {% endif %}
+                                {% empty %}-{% endfor %}
+                            </td>
                             <td class="px-6 py-3 text-slate">{{ charge.status|default:"-" }}</td>
                             <td class="px-6 py-3 text-slate">{{ charge.created_on|date:"Y-m-d"|default:"-" }}</td>
                             <td class="px-6 py-3 text-slate">{{ charge.satisfied_on|date:"Y-m-d"|default:"-" }}</td>

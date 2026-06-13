@@ -11,13 +11,14 @@ from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods
 
 from .csv_utils import ensure_required_columns, parse_company_row
-from .models import Company
+from .models import Company, PersonEntitled
 from .sync_stats import get_sync_stats, invalidate_sync_stats_cache, sync_stats_payload
 from .teletext import format_company_type, format_status
 
 UPLOAD_MAX_ROWS = 10_000
 UPLOAD_CHUNK_SIZE = 1_000
 RESULTS_PER_PAGE = 10
+HOLDERS_PER_PAGE = 50
 
 
 def _build_filter_url(base_params, **updates):
@@ -79,6 +80,8 @@ def _landing_context():
                 "stats": reverse("core:stats"),
                 "incorporated": f"{reverse('core:company_list')}?sort=incorporated",
                 "directors": reverse("core:directors"),
+                "charges": reverse("core:stats"),
+                "with_charges": f"{reverse('core:company_list')}?has_charges=1",
                 "index": reverse("core:company_list"),
                 "holidays": reverse("core:holidays"),
                 "help": reverse("core:help"),
@@ -97,6 +100,17 @@ def company_list(request):
     search_query = request.GET.get("q", "").strip()
     status_filters = [value for value in request.GET.getlist("status") if value]
     accounts_filters = [value for value in request.GET.getlist("accounts_category") if value]
+    holder_filters = [
+        int(value)
+        for value in request.GET.getlist("holder")
+        if value.isdigit()
+    ]
+    has_charges = request.GET.get("has_charges", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
     sort = request.GET.get("sort", "").strip().lower()
     facet = request.GET.get("facet", "").strip().lower()
 
@@ -127,6 +141,14 @@ def company_list(request):
     if accounts_filters:
         queryset = queryset.filter(accounts_category__in=accounts_filters)
         base_params["accounts_category"] = accounts_filters
+    if holder_filters:
+        queryset = queryset.filter(
+            charges__persons_entitled__id__in=holder_filters
+        ).distinct()
+        base_params["holder"] = [str(holder_id) for holder_id in holder_filters]
+    elif has_charges:
+        queryset = queryset.filter(charges__isnull=False).distinct()
+        base_params["has_charges"] = "1"
 
     if sort == "newest":
         queryset = queryset.order_by("-created_at", "company_number")
@@ -179,11 +201,17 @@ def company_list(request):
             **({"q": search_query} if search_query else {}),
             **({"status": status_filters} if status_filters else {}),
             **({"accounts_category": accounts_filters} if accounts_filters else {}),
+            **({"holder": [str(holder_id) for holder_id in holder_filters]} if holder_filters else {}),
+            **({"has_charges": "1"} if has_charges and not holder_filters else {}),
             **({"sort": sort} if sort else {}),
             **({"facet": facet} if facet else {}),
         },
         doseq=True,
     )
+
+    selected_holders = list(
+        PersonEntitled.objects.filter(id__in=holder_filters).order_by("name")
+    ) if holder_filters else []
 
     context = {
         "page_obj": page_obj,
@@ -191,6 +219,9 @@ def company_list(request):
         "search_query": search_query,
         "status_filters": status_filters,
         "accounts_filters": accounts_filters,
+        "holder_filters": holder_filters,
+        "selected_holders": selected_holders,
+        "has_charges": has_charges or bool(holder_filters),
         "sort": sort,
         "facet": facet,
         "status_options": status_options,
@@ -207,7 +238,7 @@ def company_detail(request, company_number):
     _annotate_company(company)
     context = {
         "company": company,
-        "charges": company.charges.all(),
+        "charges": company.charges.prefetch_related("persons_entitled").all(),
         "pscs": company.pscs.all(),
         "active_tab": "index",
     }
@@ -218,28 +249,50 @@ def help_page(request):
     return render(request, "core/help.html", {"active_tab": "help"})
 
 
-def stats_page(request):
-    sync = _get_sync_status()
-    total = Company.objects.count()
-    active = Company.objects.filter(company_status__icontains="active").count()
-    dissolved = Company.objects.filter(company_status__icontains="dissolved").count()
-    context = {
-        "active_tab": "help",
-        "stats": {
-            "total": total,
-            "active": active,
-            "dissolved": dissolved,
-            "synced": sync["synced"],
-            "pending": sync["pending"],
-            "failed": sync["failed"],
-            "percent": sync["percent"],
-        },
-    }
-    return render(request, "core/stats.html", context)
-
-
 def directors_page(request):
     return render(request, "core/directors.html", {"active_tab": "help"})
+
+
+def charge_holders_page(request):
+    search_query = request.GET.get("q", "").strip()
+    selected_holders = [
+        int(value)
+        for value in request.GET.getlist("holder")
+        if value.isdigit()
+    ]
+
+    queryset = (
+        PersonEntitled.objects.annotate(
+            company_count=Count("charges__company", distinct=True),
+            charge_count=Count("charges", distinct=True),
+        )
+        .filter(charge_count__gt=0)
+        .order_by("name")
+    )
+    if search_query:
+        queryset = queryset.filter(name__icontains=search_query)
+
+    total_count = queryset.count()
+    paginator = Paginator(queryset, HOLDERS_PER_PAGE)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    page_params = {}
+    if search_query:
+        page_params["q"] = search_query
+    for holder_id in selected_holders:
+        page_params.setdefault("holder", []).append(str(holder_id))
+    page_query = urlencode(page_params, doseq=True)
+
+    context = {
+        "page_obj": page_obj,
+        "total_count": total_count,
+        "search_query": search_query,
+        "selected_holders": selected_holders,
+        "page_query": page_query,
+        "companies_with_charges_url": f"{reverse('core:company_list')}?has_charges=1",
+        "active_tab": "search",
+    }
+    return render(request, "core/charge_holders.html", context)
 
 
 def holidays_page(request):

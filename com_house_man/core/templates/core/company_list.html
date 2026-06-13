@@ -40,6 +40,14 @@
     </section>
 
     <section class="tt-panel-yellow">
+        <div class="tt-panel-title">CHARGES</div>
+        <div class="tt-panel-body tt-hint">
+            <a href="{% url 'core:stats' %}">PAGE 150 — CHARGE HOLDERS</a><br>
+            <a href="{% url 'core:company_list' %}?has_charges=1">PAGE 171 — WITH CHARGES</a>
+        </div>
+    </section>
+
+    <section class="tt-panel-yellow">
         <div class="tt-panel-title">UPLOAD DATA</div>
         <div class="tt-panel-body tt-hint">
             PRESS <a href="{% url 'core:upload_csv' %}">GREEN (UPLOAD)</a> TO ADD CSV FILE TO DATABASE
@@ -52,6 +60,19 @@
 
 {% block content %}
     <div class="tt-main-title">RESULTS</div>
+    {% if selected_holders %}
+        <div class="tt-page-info">
+            CHARGE HOLDERS:
+            {% for holder in selected_holders %}
+                {{ holder.name|upper }}{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+            — <a href="{% url 'core:stats' %}">CHANGE</a>
+        </div>
+    {% elif has_charges %}
+        <div class="tt-page-info">
+            COMPANIES WITH CHARGES — <a href="{% url 'core:stats' %}">BROWSE HOLDERS</a>
+        </div>
+    {% endif %}
     <div class="tt-page-info">
         PAGE {{ page_obj.number }}/{{ page_obj.paginator.num_pages }} — {{ total_count }} MATCHING
     </div>

@@ -1,0 +1,101 @@
+{% extends "core/base.html" %}
+
+{% block title %}P150 CHARGE HOLDERS{% endblock %}
+
+{% block sidebar %}
+<aside class="tt-sidebar">
+    <section>
+        <div class="tt-panel-title">CHARGE HOLDERS</div>
+        <div class="tt-panel-body">
+            <form method="get">
+                <label class="tt-label" for="q">HOLDER NAME</label>
+                <input id="q" class="tt-input" type="text" name="q" value="{{ search_query }}" placeholder="BANK OR LENDER">
+                {% for holder_id in selected_holders %}
+                    <input type="hidden" name="holder" value="{{ holder_id }}">
+                {% endfor %}
+                <div class="tt-btn-row">
+                    <button class="tt-btn" type="submit">GO</button>
+                    <a class="tt-btn" href="{% url 'core:stats' %}">CLR</a>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <section class="tt-panel-yellow">
+        <div class="tt-panel-title">ALL CHARGED COS</div>
+        <div class="tt-panel-body tt-hint">
+            <a href="{{ companies_with_charges_url }}">PAGE 171 — COMPANIES WITH CHARGES</a>
+        </div>
+    </section>
+
+    {% include "core/includes/sync_panel.html" %}
+</aside>
+{% endblock %}
+
+{% block content %}
+    <div class="tt-main-title">PAGE 150 — CHARGE HOLDERS</div>
+    <div class="tt-page-info">
+        PAGE {{ page_obj.number }}/{{ page_obj.paginator.num_pages }} — {{ total_count }} HOLDERS ON FILE
+    </div>
+
+    <section>
+        <div class="tt-panel-body tt-hint">
+            SELECT ONE OR MORE HOLDERS, THEN PRESS FIND TO LIST THEIR COMPANIES.
+        </div>
+    </section>
+
+    <form method="get" action="{% url 'core:company_list' %}">
+        <section>
+            <table class="tt-table">
+                <thead>
+                    <tr>
+                        <th>SEL</th>
+                        <th>CHARGE HOLDER</th>
+                        <th>CHARGES</th>
+                        <th>COMPANIES</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for holder in page_obj %}
+                        <tr>
+                            <td>
+                                <label class="tt-check">
+                                    <input
+                                        type="checkbox"
+                                        name="holder"
+                                        value="{{ holder.id }}"
+                                        {% if holder.id in selected_holders %}checked{% endif %}
+                                    >
+                                </label>
+                            </td>
+                            <td>
+                                <div class="tt-company-name">{{ holder.name|upper }}</div>
+                            </td>
+                            <td class="tt-type">{{ holder.charge_count }}</td>
+                            <td class="tt-type">{{ holder.company_count }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="tt-empty">NO CHARGE HOLDERS FOUND</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <div class="tt-btn-row">
+            <button class="tt-btn" type="submit">FIND COMPANIES</button>
+            <a class="tt-btn" href="{% url 'core:stats' %}">RESET</a>
+        </div>
+    </form>
+
+    <div class="tt-pager">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if page_query %}&{{ page_query }}{% endif %}">&lt; PREV</a>
+        {% endif %}
+        <span>[ PAGE {{ page_obj.number }} OF {{ page_obj.paginator.num_pages }} ]</span>
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if page_query %}&{{ page_query }}{% endif %}">NEXT &gt;</a>
+        {% endif %}
+    </div>
+{% endblock %}

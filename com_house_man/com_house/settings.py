@@ -149,8 +149,10 @@ if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     # Railway terminates TLS at the edge; internal healthchecks use plain HTTP.
     _on_railway = bool(os.environ.get("RAILWAY_ENVIRONMENT"))
+    _local_only = set(ALLOWED_HOSTS) <= {"localhost", "127.0.0.1", "[::1]"}
     SECURE_SSL_REDIRECT = (
         not _on_railway
+        and not _local_only
         and os.environ.get("SECURE_SSL_REDIRECT", "true").strip().lower()
         in {"1", "true", "yes", "on"}
     )

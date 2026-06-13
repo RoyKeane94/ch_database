@@ -127,9 +127,10 @@ function landingHTML() {
     <a class="idx-row" href="${esc(URLS.upload || "#")}"><span class="il">UPLOAD CSV</span><span class="id">.....</span><span class="in">103</span></a>
     <a class="idx-row" href="${esc(URLS.newest || "#")}"><span class="il">NEW THIS WK</span><span class="id">...</span><span class="in">140</span></a>
     <a class="idx-row" href="${esc(URLS.account_type || "#")}"><span class="il">BY ACCT TYPE</span><span class="id">...</span><span class="in">104</span></a>
-    <a class="idx-row" href="${esc(URLS.stats || "#")}"><span class="il">STATS</span><span class="id">.........</span><span class="in">150</span></a>
+    <a class="idx-row" href="${esc(URLS.stats || "#")}"><span class="il">CHRG HOLDERS</span><span class="id">...</span><span class="in">150</span></a>
     <a class="idx-row" href="${esc(URLS.incorporated || "#")}"><span class="il">BY DATE INC</span><span class="id">....</span><span class="in">105</span></a>
     <a class="idx-row" href="${esc(URLS.directors || "#")}"><span class="il">DIRECTORS</span><span class="id">.....</span><span class="in">160</span></a>
+    <a class="idx-row" href="${esc(URLS.with_charges || "#")}"><span class="il">WITH CHARGES</span><span class="id">...</span><span class="in">171</span></a>
   </nav>
   <div class="az">A-Z INDEX . <a href="${esc(URLS.index || "#")}"><span>199</span></a></div>
   <div class="live-hdr"><div class="dseg"></div><span class="lt">LIVE FROM THE BBC:</span><div class="dseg"></div></div>
