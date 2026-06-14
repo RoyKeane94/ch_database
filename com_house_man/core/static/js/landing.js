@@ -132,7 +132,7 @@ function landingHTML() {
     <a class="idx-row" href="${esc(URLS.directors || "#")}"><span class="il">DIRECTORS</span><span class="id">.....</span><span class="in">160</span></a>
     <a class="idx-row" href="${esc(URLS.with_charges || "#")}"><span class="il">WITH CHARGES</span><span class="id">...</span><span class="in">171</span></a>
   </nav>
-  <div class="az">A-Z INDEX . <a href="${esc(URLS.index || "#")}"><span>199</span></a></div>
+  <div class="az">CHARGE HOLDERS . <a href="${esc(URLS.index || "#")}"><span>150</span></a></div>
   <div class="live-hdr"><div class="dseg"></div><span class="lt">LIVE FROM THE BBC:</span><div class="dseg"></div></div>
   ${liveRow("WEATHER", live.weather, FALLBACK.weather)}
   ${liveRow("TOP STORY", live.headline, FALLBACK.headline)}

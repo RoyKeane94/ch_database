@@ -90,6 +90,9 @@ a:hover {
 
 .tt-nav a.tt-tab-index {
   background: var(--tt-cyan);
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
 }
 
 .tt-nav a.tt-tab-help {

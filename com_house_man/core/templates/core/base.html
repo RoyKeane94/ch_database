@@ -18,7 +18,7 @@
         <nav class="tt-nav">
             <a href="{% url 'core:company_list' %}" class="tt-tab-search {% if active_tab == 'search' %}active{% endif %}">SEARCH</a>
             <a href="{% url 'core:upload_csv' %}" class="tt-tab-upload {% if active_tab == 'upload' %}active{% endif %}">UPLOAD</a>
-            <a href="{% url 'core:company_list' %}" class="tt-tab-index {% if active_tab == 'index' %}active{% endif %}">INDEX</a>
+            <a href="{% url 'core:stats' %}" class="tt-tab-index {% if active_tab == 'index' %}active{% endif %}">CHARGE HOLDERS</a>
             <a href="{% url 'core:help' %}" class="tt-tab-help {% if active_tab == 'help' %}active{% endif %}">HELP</a>
         </nav>
 

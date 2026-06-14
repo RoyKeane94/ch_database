@@ -40,7 +40,7 @@
 
     <section>
         <div class="tt-panel-body tt-hint">
-            SELECT ONE OR MORE HOLDERS, THEN PRESS FIND TO LIST THEIR COMPANIES.
+            CLICK A CHARGE HOLDER TO VIEW THEIR COMPANIES, OR SELECT SEVERAL AND PRESS FIND.
         </div>
     </section>
 
@@ -69,10 +69,14 @@
                                 </label>
                             </td>
                             <td>
-                                <div class="tt-company-name">{{ holder.name|upper }}</div>
+                                <div class="tt-company-name">
+                                    <a href="{% url 'core:company_list' %}?holder={{ holder.id }}">{{ holder.name|upper }}</a>
+                                </div>
                             </td>
                             <td class="tt-type">{{ holder.charge_count }}</td>
-                            <td class="tt-type">{{ holder.company_count }}</td>
+                            <td class="tt-type">
+                                <a href="{% url 'core:company_list' %}?holder={{ holder.id }}">{{ holder.company_count }}</a>
+                            </td>
                         </tr>
                     {% empty %}
                         <tr>

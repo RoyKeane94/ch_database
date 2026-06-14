@@ -17,7 +17,7 @@ from .teletext import format_company_type, format_status
 
 UPLOAD_MAX_ROWS = 10_000
 UPLOAD_CHUNK_SIZE = 1_000
-RESULTS_PER_PAGE = 10
+RESULTS_PER_PAGE = 20
 HOLDERS_PER_PAGE = 50
 
 
@@ -82,7 +82,7 @@ def _landing_context():
                 "directors": reverse("core:directors"),
                 "charges": reverse("core:stats"),
                 "with_charges": f"{reverse('core:company_list')}?has_charges=1",
-                "index": reverse("core:company_list"),
+                "index": reverse("core:stats"),
                 "holidays": reverse("core:holidays"),
                 "help": reverse("core:help"),
                 "bbc_news": "https://www.bbc.co.uk/news",
@@ -240,7 +240,7 @@ def company_detail(request, company_number):
         "company": company,
         "charges": company.charges.prefetch_related("persons_entitled").all(),
         "pscs": company.pscs.all(),
-        "active_tab": "index",
+        "active_tab": "search",
     }
     return render(request, "core/company_detail.html", context)
 
@@ -290,7 +290,7 @@ def charge_holders_page(request):
         "selected_holders": selected_holders,
         "page_query": page_query,
         "companies_with_charges_url": f"{reverse('core:company_list')}?has_charges=1",
-        "active_tab": "search",
+        "active_tab": "index",
     }
     return render(request, "core/charge_holders.html", context)
 
