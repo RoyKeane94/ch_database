@@ -221,11 +221,11 @@ a:hover {
 }
 
 .tt-export-row {
-  padding-bottom: 20px;
+  padding-bottom: 8px;
 }
 
-.tt-export-row + section {
-  margin-top: 4px;
+.tt-after-export {
+  margin-top: 20px;
 }
 
 .tt-btn {
