@@ -38,6 +38,11 @@
         PAGE {{ page_obj.number }}/{{ page_obj.paginator.num_pages }} — {{ total_count }} HOLDERS ON FILE
     </div>
 
+    <div class="tt-btn-row tt-export-row">
+        <a class="tt-btn" href="{% url 'core:export_charge_holders' 'json' %}{% if export_query %}?{{ export_query }}{% endif %}">EXPORT JSON</a>
+        <a class="tt-btn" href="{% url 'core:export_charge_holders' 'xlsx' %}{% if export_query %}?{{ export_query }}{% endif %}">EXPORT EXCEL</a>
+    </div>
+
     <section>
         <div class="tt-panel-body tt-hint">
             CLICK A CHARGE HOLDER TO VIEW THEIR COMPANIES, OR SELECT SEVERAL AND PRESS FIND.

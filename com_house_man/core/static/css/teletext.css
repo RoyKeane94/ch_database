@@ -220,6 +220,14 @@ a:hover {
   margin-top: 10px;
 }
 
+.tt-export-row {
+  padding-bottom: 20px;
+}
+
+.tt-export-row + section {
+  margin-top: 4px;
+}
+
 .tt-btn {
   background: var(--tt-black);
   color: var(--tt-green);

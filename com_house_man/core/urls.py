@@ -2,7 +2,7 @@ from django.conf import settings
 from django.urls import path
 from django.views.generic import RedirectView
 
-from . import error_views, views
+from . import error_views, exports, views
 from .cofax_live_api import cofax_live
 
 app_name = "core"
@@ -14,6 +14,8 @@ urlpatterns = [
     path("upload/", views.upload_csv, name="upload_csv"),
     path("help/", views.help_page, name="help"),
     path("stats/", views.charge_holders_page, name="stats"),
+    path("stats/export.<str:export_format>/", exports.export_charge_holders, name="export_charge_holders"),
+    path("companies/export.<str:export_format>/", exports.export_companies, name="export_companies"),
     path("directors/", views.directors_page, name="directors"),
     path(
         "charges/",

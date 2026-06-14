@@ -77,6 +77,13 @@
         PAGE {{ page_obj.number }}/{{ page_obj.paginator.num_pages }} — {{ total_count }} MATCHING
     </div>
 
+    {% if show_company_export %}
+        <div class="tt-btn-row tt-export-row">
+            <a class="tt-btn" href="{% url 'core:export_companies' 'json' %}?{{ export_query }}">EXPORT JSON</a>
+            <a class="tt-btn" href="{% url 'core:export_companies' 'xlsx' %}?{{ export_query }}">EXPORT EXCEL</a>
+        </div>
+    {% endif %}
+
     <section>
         <table class="tt-table">
             <thead>

@@ -11,6 +11,8 @@ from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods
 
 from .csv_utils import ensure_required_columns, parse_company_row
+from .exports import export_query_string
+from .list_querysets import build_charge_holders_queryset, build_company_queryset
 from .models import Company, PersonEntitled
 from .sync_stats import get_sync_stats, invalidate_sync_stats_cache, sync_stats_payload
 from .teletext import format_company_type, format_status
@@ -97,22 +99,16 @@ def landing_page(request):
 
 
 def company_list(request):
-    search_query = request.GET.get("q", "").strip()
     status_filters = [value for value in request.GET.getlist("status") if value]
     accounts_filters = [value for value in request.GET.getlist("accounts_category") if value]
-    holder_filters = [
-        int(value)
-        for value in request.GET.getlist("holder")
-        if value.isdigit()
-    ]
-    has_charges = request.GET.get("has_charges", "").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }
     sort = request.GET.get("sort", "").strip().lower()
     facet = request.GET.get("facet", "").strip().lower()
+
+    queryset, filter_meta = build_company_queryset(request)
+    search_query = filter_meta["search_query"]
+    holder_filters = filter_meta["holder_filters"]
+    selected_holders = filter_meta["selected_holders"]
+    has_charges = filter_meta["has_charges"]
 
     sidebar_scope = Company.objects.all()
     if search_query:
@@ -120,7 +116,6 @@ def company_list(request):
             Q(company_name__icontains=search_query) | Q(company_number__icontains=search_query)
         )
 
-    queryset = sidebar_scope
     base_params = {}
     if search_query:
         base_params["q"] = search_query
@@ -128,34 +123,18 @@ def company_list(request):
         base_params["sort"] = sort
     if facet:
         base_params["facet"] = facet
-
     if len(status_filters) == 1 and status_filters[0].lower() == "active":
-        queryset = queryset.filter(company_status__icontains="active")
         base_params["status"] = status_filters
     elif len(status_filters) == 1 and status_filters[0].lower() == "dissolved":
-        queryset = queryset.filter(company_status__icontains="dissolved")
         base_params["status"] = status_filters
     elif status_filters:
-        queryset = queryset.filter(company_status__in=status_filters)
         base_params["status"] = status_filters
     if accounts_filters:
-        queryset = queryset.filter(accounts_category__in=accounts_filters)
         base_params["accounts_category"] = accounts_filters
     if holder_filters:
-        queryset = queryset.filter(
-            charges__persons_entitled__id__in=holder_filters
-        ).distinct()
         base_params["holder"] = [str(holder_id) for holder_id in holder_filters]
-    elif has_charges:
-        queryset = queryset.filter(charges__isnull=False).distinct()
+    elif has_charges and not holder_filters:
         base_params["has_charges"] = "1"
-
-    if sort == "newest":
-        queryset = queryset.order_by("-created_at", "company_number")
-    elif sort == "incorporated":
-        queryset = queryset.order_by("-date_of_creation", "company_name", "company_number")
-    else:
-        queryset = queryset.order_by("company_name", "company_number")
 
     total_count = queryset.count()
     paginator = Paginator(queryset, RESULTS_PER_PAGE)
@@ -209,9 +188,8 @@ def company_list(request):
         doseq=True,
     )
 
-    selected_holders = list(
-        PersonEntitled.objects.filter(id__in=holder_filters).order_by("name")
-    ) if holder_filters else []
+    export_query = export_query_string(request)
+    show_company_export = bool(holder_filters or has_charges)
 
     context = {
         "page_obj": page_obj,
@@ -228,6 +206,8 @@ def company_list(request):
         "account_options": account_options,
         "clear_filters_url": _build_filter_url({"q": search_query} if search_query else {}),
         "page_query": page_query,
+        "export_query": export_query,
+        "show_company_export": show_company_export,
         "active_tab": "search",
     }
     return render(request, "core/company_list.html", context)
@@ -254,23 +234,13 @@ def directors_page(request):
 
 
 def charge_holders_page(request):
-    search_query = request.GET.get("q", "").strip()
     selected_holders = [
         int(value)
         for value in request.GET.getlist("holder")
         if value.isdigit()
     ]
 
-    queryset = (
-        PersonEntitled.objects.annotate(
-            company_count=Count("charges__company", distinct=True),
-            charge_count=Count("charges", distinct=True),
-        )
-        .filter(charge_count__gt=0)
-        .order_by("name")
-    )
-    if search_query:
-        queryset = queryset.filter(name__icontains=search_query)
+    queryset, search_query = build_charge_holders_queryset(request)
 
     total_count = queryset.count()
     paginator = Paginator(queryset, HOLDERS_PER_PAGE)
@@ -290,6 +260,7 @@ def charge_holders_page(request):
         "selected_holders": selected_holders,
         "page_query": page_query,
         "companies_with_charges_url": f"{reverse('core:company_list')}?has_charges=1",
+        "export_query": export_query_string(request),
         "active_tab": "index",
     }
     return render(request, "core/charge_holders.html", context)
