@@ -90,9 +90,6 @@ a:hover {
 
 .tt-nav a.tt-tab-index {
   background: var(--tt-cyan);
-  font-size: 16px;
-  letter-spacing: 0.04em;
-  line-height: 1.1;
 }
 
 .tt-nav a.tt-tab-help {
@@ -226,6 +223,42 @@ a:hover {
 
 .tt-after-export {
   margin-top: 20px;
+}
+
+.tt-activity-filter-sidebar {
+  margin-bottom: 8px;
+}
+
+.tt-activity-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-bottom: 10px;
+}
+
+.tt-activity-label {
+  color: var(--tt-yellow);
+  letter-spacing: 0.08em;
+}
+
+.tt-activity-link {
+  color: var(--tt-cyan);
+  padding: 2px 8px;
+  border: 2px solid var(--tt-green);
+}
+
+.tt-activity-link.active {
+  background: var(--tt-green);
+  color: var(--tt-black);
+}
+
+.tt-activity-link:hover {
+  color: var(--tt-yellow);
+}
+
+.tt-activity-link.active:hover {
+  color: var(--tt-black);
 }
 
 .tt-btn {
@@ -430,6 +463,56 @@ a:hover {
 .tt-hint {
   color: var(--tt-yellow);
   font-size: 18px;
+}
+
+.tt-panel-cyan {
+  border-color: var(--tt-cyan);
+}
+
+.tt-panel-cyan .tt-panel-title {
+  background: var(--tt-cyan);
+  color: var(--tt-black);
+}
+
+.tt-sic-list {
+  max-height: 420px;
+  overflow-y: auto;
+  margin-top: 8px;
+  border: 1px solid var(--tt-green);
+  background: var(--tt-black);
+}
+
+.tt-sic-item {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 8px;
+  padding: 4px 6px;
+  color: var(--tt-green);
+  text-decoration: none;
+  font-size: 16px;
+  line-height: 1.25;
+  border-bottom: 1px solid rgba(0, 255, 0, 0.2);
+}
+
+.tt-sic-item:hover,
+.tt-sic-item.active {
+  background: var(--tt-green);
+  color: var(--tt-black);
+}
+
+.tt-sic-item[hidden] {
+  display: none;
+}
+
+.tt-sic-code {
+  font-weight: bold;
+  letter-spacing: 0.04em;
+}
+
+.tt-sic-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Ceefax error pages (standalone — no context processors) */

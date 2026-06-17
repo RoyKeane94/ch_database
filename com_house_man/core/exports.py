@@ -52,28 +52,17 @@ def _company_rows(companies, holder_filters):
         )
 
     rows = []
-    for company in companies.prefetch_related("charges__persons_entitled"):
-        if holder_filters:
-            names = sorted(
+    for company in companies:
+        charge_holders = ", ".join(
+            sorted(
                 {
                     person.name
                     for charge in company.charges.all()
                     for person in charge.persons_entitled.all()
-                    if person.id in holder_names
+                    if person.name and (not holder_filters or person.id in holder_names)
                 }
             )
-            charge_holders = ", ".join(names)
-        else:
-            charge_holders = ", ".join(
-                sorted(
-                    {
-                        person.name
-                        for charge in company.charges.all()
-                        for person in charge.persons_entitled.all()
-                        if person.name
-                    }
-                )
-            )
+        )
 
         rows.append(
             [
@@ -114,8 +103,7 @@ def _excel_attachment(headers, rows, filename):
     return response
 
 
-def _holder_filename(request, ext):
-    _, search_query = build_charge_holders_queryset(request)
+def _holder_filename(search_query, ext):
     if search_query:
         slug = slugify(search_query)[:40] or "filtered"
         return f"charge-holders-{slug}.{ext}"
@@ -137,10 +125,10 @@ def export_charge_holders(request, export_format):
     if export_format not in {"json", "xlsx"}:
         raise Http404
 
-    queryset, search_query = build_charge_holders_queryset(request)
+    queryset, search_query, _activity = build_charge_holders_queryset(request)
     holders, total, truncated = _truncate_queryset(queryset)
     rows = _holder_rows(holders)
-    filename = _holder_filename(request, export_format)
+    filename = _holder_filename(search_query, export_format)
 
     if export_format == "json":
         payload = {
@@ -172,7 +160,9 @@ def export_companies(request, export_format):
     if not meta["holder_filters"] and not meta["has_charges"]:
         raise Http404
 
-    companies, total, truncated = _truncate_queryset(queryset)
+    companies, total, truncated = _truncate_queryset(
+        queryset.prefetch_related("charges__persons_entitled")
+    )
     rows = _company_rows(companies, meta["holder_filters"])
     filename = _company_filename(meta, export_format)
 

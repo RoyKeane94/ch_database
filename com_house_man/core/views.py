@@ -12,9 +12,14 @@ from django.views.decorators.http import require_GET, require_http_methods
 
 from .csv_utils import ensure_required_columns, parse_company_row
 from .exports import export_query_string
-from .list_querysets import build_charge_holders_queryset, build_company_queryset
+from .list_querysets import (
+    build_charge_holders_queryset,
+    build_company_queryset,
+    charge_scope_activity_counts,
+)
 from .models import Company, PersonEntitled
 from .sync_stats import get_sync_stats, invalidate_sync_stats_cache, sync_stats_payload
+from .sic_lookup import company_sic_filter_q, sic_labels, sic_search_results, all_sic_codes
 from .teletext import format_company_type, format_status
 
 UPLOAD_MAX_ROWS = 10_000
@@ -79,6 +84,7 @@ def _landing_context():
                 "upload": reverse("core:upload_csv"),
                 "newest": f"{reverse('core:company_list')}?sort=newest",
                 "account_type": f"{reverse('core:company_list')}?facet=account_type",
+                "by_sic": f"{reverse('core:company_list')}?facet=sic",
                 "stats": reverse("core:stats"),
                 "incorporated": f"{reverse('core:company_list')}?sort=incorporated",
                 "directors": reverse("core:directors"),
@@ -106,19 +112,42 @@ def company_list(request):
 
     queryset, filter_meta = build_company_queryset(request)
     search_query = filter_meta["search_query"]
+    sic_query = filter_meta["sic_query"]
+    matched_sic_codes = filter_meta["matched_sic_codes"]
+    sic_matches = sic_search_results(sic_query) if sic_query else []
+    if facet == "sic" and not sic_query:
+        queryset = Company.objects.none()
+    sic_catalog = list(all_sic_codes()) if facet == "sic" else []
     holder_filters = filter_meta["holder_filters"]
     selected_holders = filter_meta["selected_holders"]
     has_charges = filter_meta["has_charges"]
+    activity = filter_meta["activity"]
+    is_charge_view = filter_meta["is_charge_view"]
+    charge_scope = filter_meta["charge_scope"]
+
+    charge_scope_total = charge_active_count = charge_inactive_count = 0
+    if charge_scope is not None:
+        charge_scope_total, charge_active_count, charge_inactive_count = (
+            charge_scope_activity_counts(charge_scope, holder_filters)
+        )
 
     sidebar_scope = Company.objects.all()
-    if search_query:
+    if facet == "sic" and not sic_query:
+        sidebar_scope = Company.objects.none()
+    elif is_charge_view and charge_scope is not None:
+        sidebar_scope = charge_scope
+    elif search_query:
         sidebar_scope = sidebar_scope.filter(
             Q(company_name__icontains=search_query) | Q(company_number__icontains=search_query)
         )
+    if sic_query and matched_sic_codes:
+        sidebar_scope = sidebar_scope.filter(company_sic_filter_q(matched_sic_codes))
 
     base_params = {}
     if search_query:
         base_params["q"] = search_query
+    if sic_query:
+        base_params["sic"] = sic_query
     if sort:
         base_params["sort"] = sort
     if facet:
@@ -135,35 +164,39 @@ def company_list(request):
         base_params["holder"] = [str(holder_id) for holder_id in holder_filters]
     elif has_charges and not holder_filters:
         base_params["has_charges"] = "1"
+    if is_charge_view and activity:
+        base_params["activity"] = activity
 
-    total_count = queryset.count()
     paginator = Paginator(queryset, RESULTS_PER_PAGE)
     page_obj = paginator.get_page(request.GET.get("page"))
+    total_count = paginator.count
 
     for company in page_obj.object_list:
         _annotate_company(company)
 
-    status_counts_raw = (
-        sidebar_scope.values("company_status")
-        .annotate(count=Count("company_number"))
-        .order_by("company_status")
-    )
-    status_options = [
-        {
-            "label": (item["company_status"] or "unknown").upper(),
-            "value": item["company_status"] or "",
-            "count": item["count"],
-            "checked": (item["company_status"] or "") in status_filters,
-        }
-        for item in status_counts_raw
-        if item["company_status"]
-    ]
+    status_options = []
+    if not is_charge_view and facet != "sic":
+        status_counts_raw = (
+            sidebar_scope.values("company_status")
+            .annotate(count=Count("company_number"))
+            .order_by("company_status")
+        )
+        status_options = [
+            {
+                "label": (item["company_status"] or "unknown").upper(),
+                "value": item["company_status"] or "",
+                "count": item["count"],
+                "checked": (item["company_status"] or "") in status_filters,
+            }
+            for item in status_counts_raw
+            if item["company_status"]
+        ]
 
     account_counts_raw = (
         sidebar_scope.values("accounts_category")
         .annotate(count=Count("company_number"))
         .order_by("accounts_category")
-    )
+    ) if facet != "sic" else []
     account_options = [
         {
             "label": (item["accounts_category"] or "unknown").upper(),
@@ -178,33 +211,73 @@ def company_list(request):
     page_query = urlencode(
         {
             **({"q": search_query} if search_query else {}),
-            **({"status": status_filters} if status_filters else {}),
+            **({"sic": sic_query} if sic_query else {}),
+            **({"status": status_filters} if status_filters and not is_charge_view else {}),
             **({"accounts_category": accounts_filters} if accounts_filters else {}),
             **({"holder": [str(holder_id) for holder_id in holder_filters]} if holder_filters else {}),
             **({"has_charges": "1"} if has_charges and not holder_filters else {}),
+            **({"activity": activity} if is_charge_view and activity else {}),
             **({"sort": sort} if sort else {}),
             **({"facet": facet} if facet else {}),
         },
         doseq=True,
     )
 
+    activity_base = {
+        **({"q": search_query} if search_query else {}),
+        **({"sic": sic_query} if sic_query else {}),
+        **({"holder": [str(holder_id) for holder_id in holder_filters]} if holder_filters else {}),
+        **({"has_charges": "1"} if has_charges and not holder_filters else {}),
+        **({"accounts_category": accounts_filters} if accounts_filters else {}),
+        **({"sort": sort} if sort else {}),
+    }
+    activity_queries = {
+        "all": urlencode(activity_base, doseq=True),
+        "active": urlencode({**activity_base, "activity": "active"}, doseq=True),
+        "inactive": urlencode({**activity_base, "activity": "inactive"}, doseq=True),
+    }
+
     export_query = export_query_string(request)
     show_company_export = bool(holder_filters or has_charges)
+
+    if is_charge_view:
+        clear_params = {}
+        if holder_filters:
+            clear_params["holder"] = [str(holder_id) for holder_id in holder_filters]
+        elif has_charges:
+            clear_params["has_charges"] = "1"
+    else:
+        clear_params = {}
+        if search_query:
+            clear_params["q"] = search_query
+        if facet == "sic":
+            clear_params["facet"] = "sic"
 
     context = {
         "page_obj": page_obj,
         "total_count": total_count,
         "search_query": search_query,
+        "sic_query": sic_query,
+        "sic_matches": sic_matches,
+        "sic_no_match": bool(sic_query and not matched_sic_codes),
+        "sic_catalog": sic_catalog,
+        "show_sic_catalog": facet == "sic",
         "status_filters": status_filters,
         "accounts_filters": accounts_filters,
         "holder_filters": holder_filters,
         "selected_holders": selected_holders,
         "has_charges": has_charges or bool(holder_filters),
+        "activity": activity,
+        "is_charge_view": is_charge_view,
+        "charge_scope_total": charge_scope_total,
+        "charge_active_count": charge_active_count,
+        "charge_inactive_count": charge_inactive_count,
+        "activity_queries": activity_queries,
         "sort": sort,
         "facet": facet,
         "status_options": status_options,
         "account_options": account_options,
-        "clear_filters_url": _build_filter_url({"q": search_query} if search_query else {}),
+        "clear_filters_url": _build_filter_url(clear_params),
         "page_query": page_query,
         "export_query": export_query,
         "show_company_export": show_company_export,
@@ -216,10 +289,12 @@ def company_list(request):
 def company_detail(request, company_number):
     company = get_object_or_404(Company, pk=company_number)
     _annotate_company(company)
+    charges = company.charges.prefetch_related("persons_entitled").all()
     context = {
         "company": company,
-        "charges": company.charges.prefetch_related("persons_entitled").all(),
+        "charges": charges,
         "pscs": company.pscs.all(),
+        "sic_labels": sic_labels(company.sic_codes),
         "active_tab": "search",
     }
     return render(request, "core/company_detail.html", context)
@@ -240,26 +315,46 @@ def charge_holders_page(request):
         if value.isdigit()
     ]
 
-    queryset, search_query = build_charge_holders_queryset(request)
+    queryset, search_query, activity = build_charge_holders_queryset(request)
 
-    total_count = queryset.count()
     paginator = Paginator(queryset, HOLDERS_PER_PAGE)
     page_obj = paginator.get_page(request.GET.get("page"))
+    total_count = paginator.count
 
     page_params = {}
     if search_query:
         page_params["q"] = search_query
+    if activity:
+        page_params["activity"] = activity
     for holder_id in selected_holders:
         page_params.setdefault("holder", []).append(str(holder_id))
     page_query = urlencode(page_params, doseq=True)
+
+    activity_base = {}
+    if search_query:
+        activity_base["q"] = search_query
+    if selected_holders:
+        activity_base["holder"] = [str(holder_id) for holder_id in selected_holders]
+    activity_queries = {
+        "all": urlencode(activity_base, doseq=True),
+        "active": urlencode({**activity_base, "activity": "active"}, doseq=True),
+        "inactive": urlencode({**activity_base, "activity": "inactive"}, doseq=True),
+    }
+
+    companies_with_charges_url = reverse("core:company_list") + "?" + urlencode(
+        {"has_charges": "1", **({"activity": activity} if activity else {})},
+        doseq=True,
+    )
 
     context = {
         "page_obj": page_obj,
         "total_count": total_count,
         "search_query": search_query,
         "selected_holders": selected_holders,
+        "activity": activity,
+        "activity_queries": activity_queries,
         "page_query": page_query,
-        "companies_with_charges_url": f"{reverse('core:company_list')}?has_charges=1",
+        "companies_with_charges_url": companies_with_charges_url,
         "export_query": export_query_string(request),
         "active_tab": "index",
     }

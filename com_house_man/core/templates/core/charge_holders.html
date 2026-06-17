@@ -13,6 +13,17 @@
                 {% for holder_id in selected_holders %}
                     <input type="hidden" name="holder" value="{{ holder_id }}">
                 {% endfor %}
+                {% if activity %}
+                    <input type="hidden" name="activity" value="{{ activity }}">
+                {% endif %}
+
+                <div class="tt-label">CHARGE STATUS</div>
+                <div class="tt-activity-filter tt-activity-filter-sidebar">
+                    <a class="tt-activity-link{% if not activity %} active{% endif %}" href="?{{ activity_queries.all }}">ALL</a>
+                    <a class="tt-activity-link{% if activity == 'active' %} active{% endif %}" href="?{{ activity_queries.active }}">OUTSTANDING</a>
+                    <a class="tt-activity-link{% if activity == 'inactive' %} active{% endif %}" href="?{{ activity_queries.inactive }}">SATISFIED</a>
+                </div>
+
                 <div class="tt-btn-row">
                     <button class="tt-btn" type="submit">GO</button>
                     <a class="tt-btn" href="{% url 'core:stats' %}">CLR</a>
@@ -45,11 +56,14 @@
 
     <section class="tt-after-export">
         <div class="tt-panel-body tt-hint">
-            CLICK A CHARGE HOLDER TO VIEW THEIR COMPANIES, OR SELECT SEVERAL AND PRESS FIND.
+            CLICK A CHARGE HOLDER TO VIEW THEIR COMPANIES, OR SELECT SEVERAL AND PRESS FIND. USE CHARGE STATUS TO FILTER OUTSTANDING OR SATISFIED CHARGES FOR THAT HOLDER.
         </div>
     </section>
 
     <form method="get" action="{% url 'core:company_list' %}">
+        {% if activity %}
+            <input type="hidden" name="activity" value="{{ activity }}">
+        {% endif %}
         <section>
             <table class="tt-table">
                 <thead>
@@ -75,12 +89,14 @@
                             </td>
                             <td>
                                 <div class="tt-company-name">
-                                    <a href="{% url 'core:company_list' %}?holder={{ holder.id }}">{{ holder.name|upper }}</a>
+                                    <a href="{% url 'core:company_list' %}?holder={{ holder.id }}{% if activity %}&activity={{ activity }}{% endif %}">{{ holder.name|upper }}</a>
                                 </div>
                             </td>
                             <td class="tt-type">{{ holder.charge_count }}</td>
                             <td class="tt-type">
-                                <a href="{% url 'core:company_list' %}?holder={{ holder.id }}">{{ holder.company_count }}</a>
+                                <a href="{% url 'core:company_list' %}?holder={{ holder.id }}{% if activity %}&activity={{ activity }}{% endif %}">
+                                    {% if activity == "active" %}{{ holder.active_company_count }}{% else %}{{ holder.company_count }}{% endif %}
+                                </a>
                             </td>
                         </tr>
                     {% empty %}

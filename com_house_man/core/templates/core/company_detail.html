@@ -18,20 +18,26 @@
                 <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Type:</span> <span class="text-slate">{{ company.company_type|default:"-" }}</span></p>
                 <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Status:</span> <span class="text-slate">{{ company.company_status|default:"-" }}</span></p>
                 <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Jurisdiction:</span> <span class="text-slate">{{ company.jurisdiction|default:"-" }}</span></p>
-                <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Created:</span> <span class="text-slate">{{ company.date_of_creation|date:"Y-m-d"|default:"-" }}</span></p>
+                <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Created:</span> <span class="text-slate">{{ company.date_of_creation|date:"d-m-Y"|default:"-" }}</span></p>
                 <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Address:</span> <span class="text-slate">{{ company.registered_address_display|default:"-" }}</span></p>
             </div>
             <div class="space-y-2 text-[0.78rem]">
-                <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Accounts Due:</span> <span class="text-slate">{{ company.accounts_next_due|date:"Y-m-d"|default:"-" }}{% if company.accounts_overdue %} (overdue){% endif %}</span></p>
-                <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Confirmation Due:</span> <span class="text-slate">{{ company.confirmation_next_due|date:"Y-m-d"|default:"-" }}{% if company.confirmation_overdue %} (overdue){% endif %}</span></p>
+                <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Accounts Due:</span> <span class="text-slate">{{ company.accounts_next_due|date:"d-m-Y"|default:"-" }}{% if company.accounts_overdue %} (overdue){% endif %}</span></p>
+                <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Confirmation Due:</span> <span class="text-slate">{{ company.confirmation_next_due|date:"d-m-Y"|default:"-" }}{% if company.confirmation_overdue %} (overdue){% endif %}</span></p>
                 <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Insolvency History:</span> <span class="text-slate">{% if company.has_insolvency_history %}Yes{% else %}No{% endif %}</span></p>
-                <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">SIC Codes:</span> <span class="text-slate">{{ company.sic_codes|join:", "|default:"-" }}</span></p>
+                <p><span class="font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">SIC Codes:</span>
+                    <span class="text-slate">
+                        {% for item in sic_labels %}
+                            <a href="{% url 'core:company_list' %}?sic={{ item.code }}">{{ item.code }} — {{ item.description }}</a>{% if not forloop.last %}; {% endif %}
+                        {% empty %}-{% endfor %}
+                    </span>
+                </p>
             </div>
             <div class="rounded-xl border border-rule bg-surface p-4 text-sm">
                 <p class="font-body text-[0.62rem] font-semibold uppercase tracking-widest-2 text-blue">API Fetch</p>
                 {% if company.last_fetched_at %}
                     <p class="mt-2 inline-flex rounded-full border border-rule bg-blue-light px-2.5 py-1 font-body text-[0.6rem] font-medium uppercase tracking-wide-3 text-blue">
-                        Last fetched {{ company.last_fetched_at }}
+                        Last fetched {{ company.last_fetched_at|date:"d-m-Y, g:i a" }}
                     </p>
                 {% elif company.needs_enrichment %}
                     <p class="mt-2 inline-flex rounded-full border border-rule bg-blue-light px-2.5 py-1 font-body text-[0.6rem] font-medium uppercase tracking-wide-3 text-blue">
@@ -78,8 +84,8 @@
                                 {% empty %}-{% endfor %}
                             </td>
                             <td class="px-6 py-3 text-slate">{{ charge.status|default:"-" }}</td>
-                            <td class="px-6 py-3 text-slate">{{ charge.created_on|date:"Y-m-d"|default:"-" }}</td>
-                            <td class="px-6 py-3 text-slate">{{ charge.satisfied_on|date:"Y-m-d"|default:"-" }}</td>
+                            <td class="px-6 py-3 text-slate">{{ charge.created_on|date:"d-m-Y"|default:"-" }}</td>
+                            <td class="px-6 py-3 text-slate">{{ charge.satisfied_on|date:"d-m-Y"|default:"-" }}</td>
                         </tr>
                     {% empty %}
                         <tr><td colspan="5" class="px-6 py-7 text-center text-muted">No charges recorded.</td></tr>
@@ -100,7 +106,7 @@
                     <p class="text-slate">{{ psc.kind|default:"-" }}{% if psc.ceased %} (ceased){% endif %}</p>
                     <p class="mt-1 font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">Controls: {{ psc.natures_of_control|join:", "|default:"-" }}</p>
                     <p class="mt-1 font-body text-[0.68rem] uppercase tracking-wide-5 text-muted">
-                        Notified: {{ psc.notified_on|date:"Y-m-d"|default:"-" }} | Ceased: {{ psc.ceased_on|date:"Y-m-d"|default:"-" }}
+                        Notified: {{ psc.notified_on|date:"d-m-Y"|default:"-" }} | Ceased: {{ psc.ceased_on|date:"d-m-Y"|default:"-" }}
                     </p>
                 </li>
             {% empty %}

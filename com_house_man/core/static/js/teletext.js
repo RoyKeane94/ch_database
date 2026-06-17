@@ -60,3 +60,32 @@ updateClock();
 setInterval(updateClock, 30000);
 pollSyncStatus();
 setInterval(pollSyncStatus, 10000);
+
+function initSicListFilter() {
+  const filter = document.getElementById("sic-filter");
+  const sicInput = document.getElementById("sic");
+  const items = document.querySelectorAll(".tt-sic-item");
+  if (!filter || !items.length) return;
+
+  filter.addEventListener("input", () => {
+    const query = filter.value.trim().toLowerCase();
+    items.forEach((item) => {
+      const haystack = (item.dataset.search || "").toLowerCase();
+      item.hidden = Boolean(query && !haystack.includes(query));
+    });
+  });
+
+  if (sicInput) {
+    sicInput.addEventListener("input", () => {
+      filter.value = sicInput.value;
+      filter.dispatchEvent(new Event("input"));
+    });
+  }
+
+  const active = document.querySelector(".tt-sic-item.active");
+  if (active) {
+    active.scrollIntoView({ block: "nearest" });
+  }
+}
+
+document.addEventListener("DOMContentLoaded", initSicListFilter);

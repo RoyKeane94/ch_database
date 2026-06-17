@@ -102,8 +102,6 @@ function tflRows() {
 
 function landingHTML() {
   const c = clock();
-  const stats = live.stats || FALLBACK.stats;
-  const newCount = stats.new_this_week || "0";
 
   return `
   <div class="hdr">
@@ -116,9 +114,6 @@ function landingHTML() {
     <div class="mast-block mb-grn">COFAX</div>
     <div class="mast-block mb-red">CH</div>
   </div>
-  <div class="dotbar"><div class="dotbar-inner"></div></div>
-  <div class="headline">${esc(newCount)} new incorporations this week <a href="${esc(URLS.newest || "#")}">140</a></div>
-  <div class="dotbar"><div class="dotbar-inner"></div></div>
   <nav class="idx" aria-label="Page index">
     <a class="idx-row" href="${esc(URLS.search || "#")}"><span class="il">SEARCH</span><span class="id">.........</span><span class="in">101</span></a>
     <a class="idx-row" href="${esc(URLS.active || "#")}"><span class="il">ACTIVE COS</span><span class="id">....</span><span class="in">120</span></a>
@@ -127,12 +122,12 @@ function landingHTML() {
     <a class="idx-row" href="${esc(URLS.upload || "#")}"><span class="il">UPLOAD CSV</span><span class="id">.....</span><span class="in">103</span></a>
     <a class="idx-row" href="${esc(URLS.newest || "#")}"><span class="il">NEW THIS WK</span><span class="id">...</span><span class="in">140</span></a>
     <a class="idx-row" href="${esc(URLS.account_type || "#")}"><span class="il">BY ACCT TYPE</span><span class="id">...</span><span class="in">104</span></a>
-    <a class="idx-row" href="${esc(URLS.stats || "#")}"><span class="il">CHRG HOLDERS</span><span class="id">...</span><span class="in">150</span></a>
+    <a class="idx-row" href="${esc(URLS.stats || "#")}"><span class="il">CHARGE HOLDERS</span><span class="id">...</span><span class="in">150</span></a>
     <a class="idx-row" href="${esc(URLS.incorporated || "#")}"><span class="il">BY DATE INC</span><span class="id">....</span><span class="in">105</span></a>
     <a class="idx-row" href="${esc(URLS.directors || "#")}"><span class="il">DIRECTORS</span><span class="id">.....</span><span class="in">160</span></a>
+    <a class="idx-row" href="${esc(URLS.by_sic || "#")}"><span class="il">BY SIC CODE</span><span class="id">....</span><span class="in">106</span></a>
     <a class="idx-row" href="${esc(URLS.with_charges || "#")}"><span class="il">WITH CHARGES</span><span class="id">...</span><span class="in">171</span></a>
   </nav>
-  <div class="az">CHARGE HOLDERS . <a href="${esc(URLS.index || "#")}"><span>150</span></a></div>
   <div class="live-hdr"><div class="dseg"></div><span class="lt">LIVE FROM THE BBC:</span><div class="dseg"></div></div>
   ${liveRow("WEATHER", live.weather, FALLBACK.weather)}
   ${liveRow("TOP STORY", live.headline, FALLBACK.headline)}

@@ -11,6 +11,25 @@
                 <label class="tt-label" for="q">QUERY</label>
                 <input id="q" class="tt-input" type="text" name="q" value="{{ search_query }}" placeholder="NAME OR NUMBER">
 
+                <label class="tt-label" for="sic">SIC CODE / ACTIVITY</label>
+                <input id="sic" class="tt-input" type="text" name="sic" value="{{ sic_query }}" placeholder="CODE OR KEYWORD"{% if facet == "sic" and not sic_query %} autofocus{% endif %}>
+
+                {% if facet == "sic" %}
+                    <input type="hidden" name="facet" value="sic">
+                {% endif %}
+
+                {% if is_charge_view %}
+                    {% for holder_id in holder_filters %}
+                        <input type="hidden" name="holder" value="{{ holder_id }}">
+                    {% endfor %}
+                    {% if has_charges and not holder_filters %}
+                        <input type="hidden" name="has_charges" value="1">
+                    {% endif %}
+                    {% if activity %}
+                        <input type="hidden" name="activity" value="{{ activity }}">
+                    {% endif %}
+                {% else %}
+                {% if facet != "sic" %}
                 <div class="tt-label">STATUS FILTER</div>
                 {% for item in status_options %}
                     <label class="tt-check">
@@ -20,7 +39,10 @@
                 {% empty %}
                     <p class="tt-hint">NO STATUS DATA YET</p>
                 {% endfor %}
+                {% endif %}
+                {% endif %}
 
+                {% if facet != "sic" %}
                 <div class="tt-label">ACCOUNT TYPE</div>
                 {% for item in account_options %}
                     <label class="tt-check">
@@ -30,6 +52,7 @@
                 {% empty %}
                     <p class="tt-hint">NO ACCOUNT TYPES YET</p>
                 {% endfor %}
+                {% endif %}
 
                 <div class="tt-btn-row">
                     <button class="tt-btn" type="submit">GO</button>
@@ -38,6 +61,26 @@
             </form>
         </div>
     </section>
+
+    {% if show_sic_catalog %}
+    <section class="tt-panel-cyan">
+        <div class="tt-panel-title">SIC CODES ({{ sic_catalog|length }})</div>
+        <div class="tt-panel-body">
+            <label class="tt-label" for="sic-filter">FILTER LIST</label>
+            <input id="sic-filter" class="tt-input" type="text" placeholder="CODE OR ACTIVITY" autocomplete="off">
+            <div class="tt-sic-list" id="sic-list">
+                {% for item in sic_catalog %}
+                    <a class="tt-sic-item{% if sic_query == item.code %} active{% endif %}"
+                       href="{% url 'core:company_list' %}?facet=sic&sic={{ item.code }}"
+                       data-search="{{ item.code }} {{ item.description|lower }}">
+                        <span class="tt-sic-code">{{ item.code }}</span>
+                        <span class="tt-sic-desc">{{ item.description|upper }}</span>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
 
     <section class="tt-panel-yellow">
         <div class="tt-panel-title">CHARGES</div>
@@ -60,6 +103,23 @@
 
 {% block content %}
     <div class="tt-main-title">RESULTS</div>
+    {% if facet == "sic" and not sic_query %}
+        <div class="tt-page-info">PAGE 106 — BY SIC CODE — PICK A CODE FROM THE LIST OR TYPE ABOVE</div>
+    {% endif %}
+    {% if sic_query %}
+        <div class="tt-page-info">
+            SIC SEARCH: {{ sic_query|upper }}
+            {% if sic_no_match %}
+                — NO MATCHING SIC CODES
+            {% elif sic_matches %}
+                —
+                {% for item in sic_matches|slice:":5" %}
+                    <a href="{% url 'core:company_list' %}?sic={{ item.code }}">{{ item.code }}</a>{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+                {% if sic_matches|length > 5 %} (+{{ sic_matches|length|add:"-5" }} MORE){% endif %}
+            {% endif %}
+        </div>
+    {% endif %}
     {% if selected_holders %}
         <div class="tt-page-info">
             CHARGE HOLDERS:
@@ -76,6 +136,15 @@
     <div class="tt-page-info">
         PAGE {{ page_obj.number }}/{{ page_obj.paginator.num_pages }} — {{ total_count }} MATCHING
     </div>
+
+    {% if is_charge_view %}
+        <div class="tt-activity-filter">
+            <span class="tt-activity-label">CHARGE STATUS:</span>
+            <a class="tt-activity-link{% if not activity %} active{% endif %}" href="?{{ activity_queries.all }}">ALL ({{ charge_scope_total }})</a>
+            <a class="tt-activity-link{% if activity == 'active' %} active{% endif %}" href="?{{ activity_queries.active }}">OUTSTANDING ({{ charge_active_count }})</a>
+            <a class="tt-activity-link{% if activity == 'inactive' %} active{% endif %}" href="?{{ activity_queries.inactive }}">SATISFIED ({{ charge_inactive_count }})</a>
+        </div>
+    {% endif %}
 
     {% if show_company_export %}
         <div class="tt-btn-row tt-export-row">
@@ -113,7 +182,13 @@
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="3" class="tt-empty">NO COMPANIES FOUND FOR THESE FILTERS</td>
+                        <td colspan="3" class="tt-empty">
+                            {% if facet == "sic" and not sic_query %}
+                                SELECT A SIC CODE FROM THE SIDEBAR LIST
+                            {% else %}
+                                NO COMPANIES FOUND FOR THESE FILTERS
+                            {% endif %}
+                        </td>
                     </tr>
                 {% endfor %}
             </tbody>
