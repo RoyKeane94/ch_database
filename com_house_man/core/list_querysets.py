@@ -1,4 +1,6 @@
-from django.db.models import Count, Exists, OuterRef, Q
+from django.core.cache import cache
+from django.db.models import Count, Exists, IntegerField, OuterRef, Q, Subquery
+from django.db.models.functions import Coalesce
 
 from core.models import Charge, Company, PersonEntitled
 from core.sic_lookup import company_sic_filter_q, find_matching_sic_codes
@@ -14,10 +16,17 @@ COMPANY_LIST_FIELDS = (
     "date_of_creation",
 )
 
+COMPANY_EXPORT_FIELDS = COMPANY_LIST_FIELDS + (
+    "registered_postal_code",
+)
+
 HOLDER_LIST_FIELDS = (
     "id",
     "name",
 )
+
+FACET_COUNTS_CACHE_KEY = "company_facet_counts_v1"
+FACET_COUNTS_CACHE_SECONDS = 120
 
 
 def parse_sic_query(request):
@@ -107,40 +116,130 @@ def _apply_search(queryset, search_query):
 
 
 def charge_scope_activity_counts(queryset, holder_filters=None):
+    """Single aggregate: total companies + how many have an outstanding charge."""
     active_charges = _charges_for_scope(holder_filters).filter(active_charge_q())
-    total = queryset.count()
-    active = queryset.filter(Exists(active_charges)).count()
-    inactive = total - active
-    return total, active, inactive
+    stats = queryset.aggregate(
+        total=Count("pk"),
+        active=Count("pk", filter=Q(Exists(active_charges))),
+    )
+    total = stats["total"] or 0
+    active = stats["active"] or 0
+    return total, active, total - active
+
+
+def _holder_count_subquery(*, active_only=False, companies=False):
+    charges = Charge.objects.filter(persons_entitled=OuterRef("pk"))
+    if active_only:
+        charges = charges.filter(active_charge_q())
+    count_field = "company_id" if companies else "pk"
+    return (
+        charges.order_by()
+        .values("persons_entitled")
+        .annotate(_c=Count(count_field, distinct=True))
+        .values("_c")[:1]
+    )
+
+
+def _annotate_holder_counts(queryset, *, need_company=True, need_active_company=False):
+    annotations = {
+        "charge_count": Coalesce(
+            Subquery(_holder_count_subquery(), output_field=IntegerField()),
+            0,
+        ),
+    }
+    if need_company:
+        annotations["company_count"] = Coalesce(
+            Subquery(
+                _holder_count_subquery(companies=True),
+                output_field=IntegerField(),
+            ),
+            0,
+        )
+    if need_active_company:
+        annotations["active_company_count"] = Coalesce(
+            Subquery(
+                _holder_count_subquery(companies=True, active_only=True),
+                output_field=IntegerField(),
+            ),
+            0,
+        )
+    return queryset.annotate(**annotations)
 
 
 def build_charge_holders_queryset(request):
     search_query = request.GET.get("q", "").strip()
     activity = parse_activity_filter(request)
 
-    queryset = (
-        PersonEntitled.objects.only(*HOLDER_LIST_FIELDS)
-        .annotate(
-            company_count=Count("charges__company", distinct=True),
-            active_company_count=Count(
-                "charges__company",
-                filter=active_charge_q("charges"),
-                distinct=True,
-            ),
-            charge_count=Count("charges", distinct=True),
-        )
-        .filter(charge_count__gt=0)
-        .order_by("name")
+    has_any_charge = Exists(Charge.objects.filter(persons_entitled=OuterRef("pk")))
+    has_active_charge = Exists(
+        Charge.objects.filter(persons_entitled=OuterRef("pk")).filter(active_charge_q())
     )
 
+    queryset = PersonEntitled.objects.only(*HOLDER_LIST_FIELDS).filter(has_any_charge)
+
     if activity == "active":
-        queryset = queryset.filter(active_company_count__gt=0)
+        queryset = queryset.filter(has_active_charge)
+        queryset = _annotate_holder_counts(
+            queryset, need_company=False, need_active_company=True
+        )
     elif activity == "inactive":
-        queryset = queryset.filter(company_count__gt=0, active_company_count=0)
+        queryset = queryset.exclude(has_active_charge)
+        queryset = _annotate_holder_counts(
+            queryset, need_company=True, need_active_company=False
+        )
+    else:
+        queryset = _annotate_holder_counts(
+            queryset, need_company=True, need_active_company=False
+        )
 
     if search_query:
         queryset = queryset.filter(name__icontains=search_query)
-    return queryset, search_query, activity
+
+    return queryset.order_by("name"), search_query, activity
+
+
+def invalidate_facet_counts_cache():
+    cache.delete(FACET_COUNTS_CACHE_KEY)
+
+
+def global_facet_counts():
+    try:
+        cached = cache.get(FACET_COUNTS_CACHE_KEY)
+        if cached is not None:
+            return cached
+    except Exception:
+        cached = None
+
+    status_counts = list(
+        Company.objects.values("company_status")
+        .annotate(count=Count("company_number"))
+        .order_by("company_status")
+    )
+    account_counts = list(
+        Company.objects.values("accounts_category")
+        .annotate(count=Count("company_number"))
+        .order_by("accounts_category")
+    )
+    payload = {"status": status_counts, "accounts": account_counts}
+    try:
+        cache.set(FACET_COUNTS_CACHE_KEY, payload, FACET_COUNTS_CACHE_SECONDS)
+    except Exception:
+        pass
+    return payload
+
+
+def facet_counts_for_scope(sidebar_scope):
+    status_counts = list(
+        sidebar_scope.values("company_status")
+        .annotate(count=Count("company_number"))
+        .order_by("company_status")
+    )
+    account_counts = list(
+        sidebar_scope.values("accounts_category")
+        .annotate(count=Count("company_number"))
+        .order_by("accounts_category")
+    )
+    return {"status": status_counts, "accounts": account_counts}
 
 
 def build_company_queryset(request):
@@ -155,10 +254,7 @@ def build_company_queryset(request):
     charge_view = is_charge_company_view(holder_filters, has_charges)
     matched_sic_codes = find_matching_sic_codes(sic_query) if sic_query else []
 
-    queryset = _apply_search(
-        Company.objects.only(*COMPANY_LIST_FIELDS),
-        search_query,
-    )
+    queryset = _apply_search(Company.objects.all(), search_query)
 
     if sic_query:
         if not matched_sic_codes:

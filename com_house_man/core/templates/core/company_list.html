@@ -1,18 +1,18 @@
 {% extends "core/base.html" %}
 
-{% block title %}P100 SEARCH{% endblock %}
+{% block title %}Search — COFAX{% endblock %}
 
 {% block sidebar %}
-<aside class="tt-sidebar">
-    <section>
-        <div class="tt-panel-title">SEARCH</div>
-        <div class="tt-panel-body">
+<aside class="sidebar">
+    <section class="panel">
+        <div class="panel-head">Search</div>
+        <div class="panel-body">
             <form method="get">
-                <label class="tt-label" for="q">QUERY</label>
-                <input id="q" class="tt-input" type="text" name="q" value="{{ search_query }}" placeholder="NAME OR NUMBER">
+                <label class="label" for="q">Query</label>
+                <input id="q" class="input" type="text" name="q" value="{{ search_query }}" placeholder="Name or number">
 
-                <label class="tt-label" for="sic">SIC CODE / ACTIVITY</label>
-                <input id="sic" class="tt-input" type="text" name="sic" value="{{ sic_query }}" placeholder="CODE OR KEYWORD"{% if facet == "sic" and not sic_query %} autofocus{% endif %}>
+                <label class="label" for="sic" style="margin-top:14px">SIC code / activity</label>
+                <input id="sic" class="input" type="text" name="sic" value="{{ sic_query }}" placeholder="Code or keyword"{% if facet == "sic" and not sic_query %} autofocus{% endif %}>
 
                 {% if facet == "sic" %}
                     <input type="hidden" name="facet" value="sic">
@@ -30,51 +30,51 @@
                     {% endif %}
                 {% else %}
                 {% if facet != "sic" %}
-                <div class="tt-label">STATUS FILTER</div>
+                <div class="label" style="margin-top:14px">Status</div>
                 {% for item in status_options %}
-                    <label class="tt-check">
+                    <label class="check">
                         <input type="checkbox" name="status" value="{{ item.value }}" {% if item.checked %}checked{% endif %}>
                         {{ item.label }} ({{ item.count }})
                     </label>
                 {% empty %}
-                    <p class="tt-hint">NO STATUS DATA YET</p>
+                    <p class="hint">No status data yet</p>
                 {% endfor %}
                 {% endif %}
                 {% endif %}
 
                 {% if facet != "sic" %}
-                <div class="tt-label">ACCOUNT TYPE</div>
+                <div class="label" style="margin-top:14px">Account type</div>
                 {% for item in account_options %}
-                    <label class="tt-check">
+                    <label class="check">
                         <input type="checkbox" name="accounts_category" value="{{ item.value }}" {% if item.checked %}checked{% endif %}>
                         {{ item.label }} ({{ item.count }})
                     </label>
                 {% empty %}
-                    <p class="tt-hint">NO ACCOUNT TYPES YET</p>
+                    <p class="hint">No account types yet</p>
                 {% endfor %}
                 {% endif %}
 
-                <div class="tt-btn-row">
-                    <button class="tt-btn" type="submit">GO</button>
-                    <a class="tt-btn" href="{{ clear_filters_url }}">CLR</a>
+                <div class="btn-row">
+                    <button class="btn btn-primary btn-sm" type="submit">Search</button>
+                    <a class="btn btn-secondary btn-sm" href="{{ clear_filters_url }}">Clear</a>
                 </div>
             </form>
         </div>
     </section>
 
     {% if show_sic_catalog %}
-    <section class="tt-panel-cyan">
-        <div class="tt-panel-title">SIC CODES ({{ sic_catalog|length }})</div>
-        <div class="tt-panel-body">
-            <label class="tt-label" for="sic-filter">FILTER LIST</label>
-            <input id="sic-filter" class="tt-input" type="text" placeholder="CODE OR ACTIVITY" autocomplete="off">
-            <div class="tt-sic-list" id="sic-list">
+    <section class="panel">
+        <div class="panel-head">SIC codes ({{ sic_catalog|length }})</div>
+        <div class="panel-body">
+            <label class="label" for="sic-filter">Filter list</label>
+            <input id="sic-filter" class="input" type="text" placeholder="Code or activity" autocomplete="off">
+            <div class="sic-list" id="sic-list">
                 {% for item in sic_catalog %}
-                    <a class="tt-sic-item{% if sic_query == item.code %} active{% endif %}"
+                    <a class="sic-item{% if sic_query == item.code %} active{% endif %}"
                        href="{% url 'core:company_list' %}?facet=sic&sic={{ item.code }}"
                        data-search="{{ item.code }} {{ item.description|lower }}">
-                        <span class="tt-sic-code">{{ item.code }}</span>
-                        <span class="tt-sic-desc">{{ item.description|upper }}</span>
+                        <span class="sic-code">{{ item.code }}</span>
+                        <span class="sic-desc">{{ item.description }}</span>
                     </a>
                 {% endfor %}
             </div>
@@ -82,18 +82,12 @@
     </section>
     {% endif %}
 
-    <section class="tt-panel-yellow">
-        <div class="tt-panel-title">CHARGES</div>
-        <div class="tt-panel-body tt-hint">
-            <a href="{% url 'core:stats' %}">PAGE 150 — CHARGE HOLDERS</a><br>
-            <a href="{% url 'core:company_list' %}?has_charges=1">PAGE 171 — WITH CHARGES</a>
-        </div>
-    </section>
-
-    <section class="tt-panel-yellow">
-        <div class="tt-panel-title">UPLOAD DATA</div>
-        <div class="tt-panel-body tt-hint">
-            PRESS <a href="{% url 'core:upload_csv' %}">GREEN (UPLOAD)</a> TO ADD CSV FILE TO DATABASE
+    <section class="panel">
+        <div class="panel-head">Shortcuts</div>
+        <div class="panel-body hint">
+            <a href="{% url 'core:stats' %}">Charge holders</a><br>
+            <a href="{% url 'core:company_list' %}?has_charges=1">Companies with charges</a><br>
+            <a href="{% url 'core:upload_csv' %}">Upload CSV</a>
         </div>
     </section>
 
@@ -102,106 +96,103 @@
 {% endblock %}
 
 {% block content %}
-    <div class="tt-main-title">RESULTS</div>
-    {% if facet == "sic" and not sic_query %}
-        <div class="tt-page-info">PAGE 106 — BY SIC CODE — PICK A CODE FROM THE LIST OR TYPE ABOVE</div>
-    {% endif %}
-    {% if sic_query %}
-        <div class="tt-page-info">
-            SIC SEARCH: {{ sic_query|upper }}
+    <h1 class="page-title">Results</h1>
+    <p class="page-sub">
+        {% if facet == "sic" and not sic_query %}
+            Browse by SIC code — pick a code from the list or type above.
+        {% elif sic_query %}
+            SIC: {{ sic_query }}
             {% if sic_no_match %}
-                — NO MATCHING SIC CODES
+                — no matching SIC codes
             {% elif sic_matches %}
                 —
                 {% for item in sic_matches|slice:":5" %}
                     <a href="{% url 'core:company_list' %}?sic={{ item.code }}">{{ item.code }}</a>{% if not forloop.last %}, {% endif %}
                 {% endfor %}
-                {% if sic_matches|length > 5 %} (+{{ sic_matches|length|add:"-5" }} MORE){% endif %}
+                {% if sic_matches|length > 5 %} (+{{ sic_matches|length|add:"-5" }} more){% endif %}
             {% endif %}
-        </div>
-    {% endif %}
-    {% if selected_holders %}
-        <div class="tt-page-info">
-            CHARGE HOLDERS:
+            · {{ total_count }} matching
+        {% elif selected_holders %}
+            Charge holders:
             {% for holder in selected_holders %}
-                {{ holder.name|upper }}{% if not forloop.last %}, {% endif %}
+                {{ holder.name }}{% if not forloop.last %}, {% endif %}
             {% endfor %}
-            — <a href="{% url 'core:stats' %}">CHANGE</a>
-        </div>
-    {% elif has_charges %}
-        <div class="tt-page-info">
-            COMPANIES WITH CHARGES — <a href="{% url 'core:stats' %}">BROWSE HOLDERS</a>
-        </div>
-    {% endif %}
-    <div class="tt-page-info">
-        PAGE {{ page_obj.number }}/{{ page_obj.paginator.num_pages }} — {{ total_count }} MATCHING
-    </div>
+            — <a href="{% url 'core:stats' %}">Change</a>
+            · {{ total_count }} matching
+        {% elif has_charges %}
+            Companies with charges — <a href="{% url 'core:stats' %}">Browse holders</a>
+            · {{ total_count }} matching
+        {% else %}
+            {{ total_count }} matching · Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        {% endif %}
+    </p>
 
     {% if is_charge_view %}
-        <div class="tt-activity-filter">
-            <span class="tt-activity-label">CHARGE STATUS:</span>
-            <a class="tt-activity-link{% if not activity %} active{% endif %}" href="?{{ activity_queries.all }}">ALL ({{ charge_scope_total }})</a>
-            <a class="tt-activity-link{% if activity == 'active' %} active{% endif %}" href="?{{ activity_queries.active }}">OUTSTANDING ({{ charge_active_count }})</a>
-            <a class="tt-activity-link{% if activity == 'inactive' %} active{% endif %}" href="?{{ activity_queries.inactive }}">SATISFIED ({{ charge_inactive_count }})</a>
+        <div class="chip-row">
+            <a class="chip{% if not activity %} active{% endif %}" href="?{{ activity_queries.all }}">All ({{ charge_scope_total }})</a>
+            <a class="chip{% if activity == 'active' %} active{% endif %}" href="?{{ activity_queries.active }}">Outstanding ({{ charge_active_count }})</a>
+            <a class="chip{% if activity == 'inactive' %} active{% endif %}" href="?{{ activity_queries.inactive }}">Satisfied ({{ charge_inactive_count }})</a>
         </div>
     {% endif %}
 
     {% if show_company_export %}
-        <div class="tt-btn-row tt-export-row">
-            <a class="tt-btn" href="{% url 'core:export_companies' 'json' %}?{{ export_query }}">EXPORT JSON</a>
-            <a class="tt-btn" href="{% url 'core:export_companies' 'xlsx' %}?{{ export_query }}">EXPORT EXCEL</a>
+        <div class="page-actions">
+            <a class="btn btn-secondary btn-sm" href="{% url 'core:export_companies' 'json' %}?{{ export_query }}">Export JSON</a>
+            <a class="btn btn-secondary btn-sm" href="{% url 'core:export_companies' 'xlsx' %}?{{ export_query }}">Export Excel</a>
         </div>
     {% endif %}
 
-    <section{% if show_company_export %} class="tt-after-export"{% endif %}>
-        <table class="tt-table">
+    <div class="table-wrap">
+        <table class="table">
             <thead>
                 <tr>
-                    <th>COMPANY NAME</th>
-                    <th>STATUS</th>
-                    <th>TYPE</th>
+                    <th>Company name</th>
+                    <th>Status</th>
+                    <th>Type</th>
                 </tr>
             </thead>
             <tbody>
                 {% for company in page_obj %}
                     <tr>
                         <td>
-                            <div class="tt-company-name">
+                            <div class="company-name">
                                 <a href="{% url 'core:company_detail' company.company_number %}">
-                                    {{ company.company_name|default:"UNKNOWN COMPANY"|upper }}
+                                    {{ company.company_name|default:"Unknown company" }}
                                 </a>
                             </div>
-                            <div class="tt-company-number">{{ company.company_number }}</div>
+                            <div class="company-number">{{ company.company_number }}</div>
                         </td>
                         <td>
-                            <span class="tt-status {{ company.tt_status_class }}">
-                                <span class="tt-dot"></span>{{ company.tt_status_label }}
+                            <span class="status {{ company.tt_status_class }}">
+                                <span class="dot"></span>{{ company.tt_status_label }}
                             </span>
                         </td>
-                        <td class="tt-type">{{ company.tt_type_label }}</td>
+                        <td>{{ company.tt_type_label }}</td>
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="3" class="tt-empty">
+                        <td colspan="3" class="empty">
                             {% if facet == "sic" and not sic_query %}
-                                SELECT A SIC CODE FROM THE SIDEBAR LIST
+                                Select a SIC code from the sidebar list
                             {% else %}
-                                NO COMPANIES FOUND FOR THESE FILTERS
+                                No companies found for these filters
                             {% endif %}
                         </td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
-    </section>
+    </div>
 
-    <div class="tt-pager">
-        {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}{% if page_query %}&{{ page_query }}{% endif %}">&lt; PREV</a>
-        {% endif %}
-        <span>[ PAGE {{ page_obj.number }} OF {{ page_obj.paginator.num_pages }} ]</span>
-        {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{% if page_query %}&{{ page_query }}{% endif %}">NEXT &gt;</a>
-        {% endif %}
+    <div class="pager">
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        <div class="pager-links">
+            {% if page_obj.has_previous %}
+                <a class="btn btn-secondary btn-sm" href="?page={{ page_obj.previous_page_number }}{% if page_query %}&{{ page_query }}{% endif %}">Previous</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+                <a class="btn btn-secondary btn-sm" href="?page={{ page_obj.next_page_number }}{% if page_query %}&{{ page_query }}{% endif %}">Next</a>
+            {% endif %}
+        </div>
     </div>
 {% endblock %}

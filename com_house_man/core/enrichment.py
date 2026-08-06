@@ -66,6 +66,7 @@ def save_company_enrichment(company, profile, charge_items, psc_items, fetched_a
                 company=company,
                 kind=parsed["kind"],
                 name=parsed["name"],
+                controller_company_number=parsed["controller_company_number"],
                 ceased=parsed["ceased"],
                 notified_on=parsed["notified_on"],
                 ceased_on=parsed["ceased_on"],

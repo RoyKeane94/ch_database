@@ -4,57 +4,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>P{{ page }} — COFAX ERROR {{ error_code }}</title>
+    <title>{{ error_code }} — COFAX</title>
     <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
-    <link rel="stylesheet" href="{% static 'css/teletext.css' %}">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
 </head>
-<body class="tt-error-body">
-    <div class="tt-screen tt-error-screen">
-        <header class="tt-topbar">
-            <a href="{{ home_url }}">P100 COFAX</a>
-            <span>P{{ page }} ERROR</span>
+<body>
+    <div class="error-page">
+        <header class="topbar">
+            <a class="logo" href="{{ home_url }}">
+                <svg class="logo-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="2" y="6" width="12" height="12" rx="6" fill="#0d0d0f"/>
+                    <rect x="10" y="6" width="12" height="12" rx="6" fill="#0d0d0f" opacity="0.45"/>
+                </svg>
+                cofax
+            </a>
+            <span class="topbar-meta">Error {{ error_code }}</span>
         </header>
 
-        <div class="tt-error-mast">
-            <span class="tt-error-mast-left">CEEFAX</span>
-            <span class="tt-error-mast-code">{{ error_code }}</span>
-            <span class="tt-error-mast-right">BBC</span>
-        </div>
-
-        <div class="tt-error-headline">{{ headline }}</div>
-
-        <section class="tt-error-panel">
-            <div class="tt-panel-title tt-error-panel-title">*** PLEASE STAND BY ***</div>
-            <div class="tt-panel-body">
+        <main class="error-main">
+            <p class="error-code">Error {{ error_code }}</p>
+            <h1 class="error-title">{{ headline }}</h1>
+            <div class="error-lines">
                 {% for line in lines %}
-                    <p class="tt-error-line">{{ line }}</p>
+                    <p>{{ line }}</p>
                 {% endfor %}
                 {% if path %}
-                    <p class="tt-error-path">
-                        <span class="tt-detail-key">REQUEST </span>
-                        <span class="tt-detail-val">{{ path }}</span>
-                    </p>
+                    <p style="margin-top:12px;font-size:13px;color:var(--faint)">Request: {{ path }}</p>
                 {% endif %}
             </div>
-        </section>
-
-        <nav class="tt-error-nav" aria-label="Recovery options">
-            <a class="tt-error-btn tt-error-btn-red" href="{{ home_url }}">P100 HOME</a>
-            <a class="tt-error-btn tt-error-btn-cyan" href="{{ search_url }}">P101 SEARCH</a>
-            <a class="tt-error-btn tt-error-btn-yellow" href="{{ help_url }}">HELP</a>
-        </nav>
-
-        <div class="tt-error-tick">
-            <div class="tt-error-tick-inner">
-                {{ hint|upper }} +++ ERROR {{ error_code }} +++ COFAX COMPANIES HOUSE +++ NO SIGNAL FROM THAT PAGE +++
+            <div class="error-actions">
+                <a class="btn btn-primary" href="{{ home_url }}">Back home</a>
+                <a class="btn btn-secondary" href="{{ search_url }}">Search register</a>
+                <a class="btn btn-ghost" href="{{ help_url }}">Help</a>
             </div>
-        </div>
-
-        <footer class="tt-footer">
-            <span>100 COFAX</span>
-            <span>ERROR {{ error_code }}</span>
-            <span>BBC2 P{{ page }}</span>
-        </footer>
+        </main>
     </div>
 </body>
 </html>

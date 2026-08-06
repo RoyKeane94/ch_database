@@ -4,7 +4,11 @@ from django.http import Http404, HttpResponse, JsonResponse
 from django.utils.text import slugify
 from openpyxl import Workbook
 
-from core.list_querysets import build_charge_holders_queryset, build_company_queryset
+from core.list_querysets import (
+    COMPANY_EXPORT_FIELDS,
+    build_charge_holders_queryset,
+    build_company_queryset,
+)
 from core.models import PersonEntitled
 
 EXPORT_MAX_ROWS = 25_000
@@ -161,7 +165,9 @@ def export_companies(request, export_format):
         raise Http404
 
     companies, total, truncated = _truncate_queryset(
-        queryset.prefetch_related("charges__persons_entitled")
+        queryset.only(*COMPANY_EXPORT_FIELDS).prefetch_related(
+            "charges__persons_entitled"
+        )
     )
     rows = _company_rows(companies, meta["holder_filters"])
     filename = _company_filename(meta, export_format)

@@ -99,6 +99,8 @@ def parse_charge_item(item, company_number):
 
 def parse_psc_item(item):
     ceased_on = parse_api_date(item.get("ceased_on"))
+    identification = item.get("identification") or {}
+    registration_number = (identification.get("registration_number") or "").strip()
     return {
         "psc_id": extract_psc_id(item),
         "kind": item.get("kind", "") or "",
@@ -107,4 +109,14 @@ def parse_psc_item(item):
         "notified_on": parse_api_date(item.get("notified_on")),
         "ceased_on": ceased_on,
         "natures_of_control": item.get("natures_of_control") or [],
+        "controller_company_number": normalize_company_number(registration_number),
     }
+
+
+def normalize_company_number(value):
+    value = (value or "").strip().upper()
+    if not value:
+        return ""
+    if value.isdigit():
+        return value.zfill(8)
+    return value

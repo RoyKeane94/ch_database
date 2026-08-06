@@ -1,0 +1,39 @@
+{% if item.kind == "node" %}
+<li class="ctree-node ctree-node--{{ item.node.role }}">
+    <span class="ctree-node__dot" aria-hidden="true"></span>
+    <div class="ctree-node__body">
+        <div class="ctree-node__tags">
+            <span class="ctree-role">{{ item.node.role_label }}</span>
+            <span class="ctree-flag{% if not item.node.is_active %} ctree-flag--off{% endif %}">
+                {{ item.node.status_label }}
+            </span>
+        </div>
+        <div class="ctree-node__name">
+            {% if item.node.url_number and item.node.role != "subject" %}
+                <a class="ctree-name" href="{% url 'core:company_detail' item.node.url_number %}">{{ item.node.name }}</a>
+            {% else %}
+                <span class="ctree-name">{{ item.node.name }}</span>
+            {% endif %}
+            {% if item.node.number %}
+                <span class="ctree-crn">{{ item.node.number }}</span>
+            {% endif %}
+        </div>
+    </div>
+</li>
+{% else %}
+<li class="ctree-edge ctree-node--{{ item.role }}">
+    <span class="ctree-edge__arrow" aria-hidden="true"></span>
+    <dl class="ctree-terms">
+        <span class="ctree-terms__lede">Controls</span>
+        {% for term in item.controls %}
+            <dt>{{ term.label }}</dt>
+            <span class="ctree-gauge{% if not term.band %} ctree-gauge--none{% endif %}" aria-hidden="true">
+                <i{% if term.band == 1 %} class="is-on"{% endif %}></i>
+                <i{% if term.band == 2 %} class="is-on"{% endif %}></i>
+                <i{% if term.band == 3 %} class="is-on"{% endif %}></i>
+            </span>
+            <dd>{{ term.value }}</dd>
+        {% endfor %}
+    </dl>
+</li>
+{% endif %}

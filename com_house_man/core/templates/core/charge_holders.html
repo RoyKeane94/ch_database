@@ -1,15 +1,15 @@
 {% extends "core/base.html" %}
 
-{% block title %}P150 CHARGE HOLDERS{% endblock %}
+{% block title %}Charge holders — COFAX{% endblock %}
 
 {% block sidebar %}
-<aside class="tt-sidebar">
-    <section>
-        <div class="tt-panel-title">CHARGE HOLDERS</div>
-        <div class="tt-panel-body">
+<aside class="sidebar">
+    <section class="panel">
+        <div class="panel-head">Charge holders</div>
+        <div class="panel-body">
             <form method="get">
-                <label class="tt-label" for="q">HOLDER NAME</label>
-                <input id="q" class="tt-input" type="text" name="q" value="{{ search_query }}" placeholder="BANK OR LENDER">
+                <label class="label" for="q">Holder name</label>
+                <input id="q" class="input" type="text" name="q" value="{{ search_query }}" placeholder="Bank or lender">
                 {% for holder_id in selected_holders %}
                     <input type="hidden" name="holder" value="{{ holder_id }}">
                 {% endfor %}
@@ -17,25 +17,25 @@
                     <input type="hidden" name="activity" value="{{ activity }}">
                 {% endif %}
 
-                <div class="tt-label">CHARGE STATUS</div>
-                <div class="tt-activity-filter tt-activity-filter-sidebar">
-                    <a class="tt-activity-link{% if not activity %} active{% endif %}" href="?{{ activity_queries.all }}">ALL</a>
-                    <a class="tt-activity-link{% if activity == 'active' %} active{% endif %}" href="?{{ activity_queries.active }}">OUTSTANDING</a>
-                    <a class="tt-activity-link{% if activity == 'inactive' %} active{% endif %}" href="?{{ activity_queries.inactive }}">SATISFIED</a>
+                <div class="label" style="margin-top:14px">Charge status</div>
+                <div class="chip-row" style="margin-bottom:0;margin-top:8px">
+                    <a class="chip{% if not activity %} active{% endif %}" href="?{{ activity_queries.all }}">All</a>
+                    <a class="chip{% if activity == 'active' %} active{% endif %}" href="?{{ activity_queries.active }}">Outstanding</a>
+                    <a class="chip{% if activity == 'inactive' %} active{% endif %}" href="?{{ activity_queries.inactive }}">Satisfied</a>
                 </div>
 
-                <div class="tt-btn-row">
-                    <button class="tt-btn" type="submit">GO</button>
-                    <a class="tt-btn" href="{% url 'core:stats' %}">CLR</a>
+                <div class="btn-row">
+                    <button class="btn btn-primary btn-sm" type="submit">Search</button>
+                    <a class="btn btn-secondary btn-sm" href="{% url 'core:stats' %}">Clear</a>
                 </div>
             </form>
         </div>
     </section>
 
-    <section class="tt-panel-yellow">
-        <div class="tt-panel-title">ALL CHARGED COS</div>
-        <div class="tt-panel-body tt-hint">
-            <a href="{{ companies_with_charges_url }}">PAGE 171 — COMPANIES WITH CHARGES</a>
+    <section class="panel">
+        <div class="panel-head">Shortcuts</div>
+        <div class="panel-body hint">
+            <a href="{{ companies_with_charges_url }}">Companies with charges</a>
         </div>
     </section>
 
@@ -44,41 +44,38 @@
 {% endblock %}
 
 {% block content %}
-    <div class="tt-main-title">PAGE 150 — CHARGE HOLDERS</div>
-    <div class="tt-page-info">
-        PAGE {{ page_obj.number }}/{{ page_obj.paginator.num_pages }} — {{ total_count }} HOLDERS ON FILE
+    <h1 class="page-title">Charge holders</h1>
+    <p class="page-sub">{{ total_count }} holders on file · Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</p>
+
+    <div class="page-actions">
+        <a class="btn btn-secondary btn-sm" href="{% url 'core:export_charge_holders' 'json' %}{% if export_query %}?{{ export_query }}{% endif %}">Export JSON</a>
+        <a class="btn btn-secondary btn-sm" href="{% url 'core:export_charge_holders' 'xlsx' %}{% if export_query %}?{{ export_query }}{% endif %}">Export Excel</a>
     </div>
 
-    <div class="tt-btn-row tt-export-row">
-        <a class="tt-btn" href="{% url 'core:export_charge_holders' 'json' %}{% if export_query %}?{{ export_query }}{% endif %}">EXPORT JSON</a>
-        <a class="tt-btn" href="{% url 'core:export_charge_holders' 'xlsx' %}{% if export_query %}?{{ export_query }}{% endif %}">EXPORT EXCEL</a>
-    </div>
-
-    <section class="tt-after-export">
-        <div class="tt-panel-body tt-hint">
-            CLICK A CHARGE HOLDER TO VIEW THEIR COMPANIES, OR SELECT SEVERAL AND PRESS FIND. USE CHARGE STATUS TO FILTER OUTSTANDING OR SATISFIED CHARGES FOR THAT HOLDER.
-        </div>
-    </section>
+    <p class="hint" style="margin-bottom:20px">
+        Click a charge holder to view their companies, or select several and press Find companies.
+        Use charge status to filter outstanding or satisfied charges.
+    </p>
 
     <form method="get" action="{% url 'core:company_list' %}">
         {% if activity %}
             <input type="hidden" name="activity" value="{{ activity }}">
         {% endif %}
-        <section>
-            <table class="tt-table">
+        <div class="table-wrap">
+            <table class="table">
                 <thead>
                     <tr>
-                        <th>SEL</th>
-                        <th>CHARGE HOLDER</th>
-                        <th>CHARGES</th>
-                        <th>COMPANIES</th>
+                        <th style="width:48px">Sel</th>
+                        <th>Charge holder</th>
+                        <th>Charges</th>
+                        <th>Companies</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for holder in page_obj %}
                         <tr>
                             <td>
-                                <label class="tt-check">
+                                <label class="check" style="margin:0">
                                     <input
                                         type="checkbox"
                                         name="holder"
@@ -88,12 +85,12 @@
                                 </label>
                             </td>
                             <td>
-                                <div class="tt-company-name">
-                                    <a href="{% url 'core:company_list' %}?holder={{ holder.id }}{% if activity %}&activity={{ activity }}{% endif %}">{{ holder.name|upper }}</a>
+                                <div class="company-name">
+                                    <a href="{% url 'core:company_list' %}?holder={{ holder.id }}{% if activity %}&activity={{ activity }}{% endif %}">{{ holder.name }}</a>
                                 </div>
                             </td>
-                            <td class="tt-type">{{ holder.charge_count }}</td>
-                            <td class="tt-type">
+                            <td>{{ holder.charge_count }}</td>
+                            <td>
                                 <a href="{% url 'core:company_list' %}?holder={{ holder.id }}{% if activity %}&activity={{ activity }}{% endif %}">
                                     {% if activity == "active" %}{{ holder.active_company_count }}{% else %}{{ holder.company_count }}{% endif %}
                                 </a>
@@ -101,26 +98,28 @@
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="4" class="tt-empty">NO CHARGE HOLDERS FOUND</td>
+                            <td colspan="4" class="empty">No charge holders found</td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
-        </section>
+        </div>
 
-        <div class="tt-btn-row">
-            <button class="tt-btn" type="submit">FIND COMPANIES</button>
-            <a class="tt-btn" href="{% url 'core:stats' %}">RESET</a>
+        <div class="btn-row">
+            <button class="btn btn-primary" type="submit">Find companies</button>
+            <a class="btn btn-secondary" href="{% url 'core:stats' %}">Reset</a>
         </div>
     </form>
 
-    <div class="tt-pager">
-        {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}{% if page_query %}&{{ page_query }}{% endif %}">&lt; PREV</a>
-        {% endif %}
-        <span>[ PAGE {{ page_obj.number }} OF {{ page_obj.paginator.num_pages }} ]</span>
-        {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{% if page_query %}&{{ page_query }}{% endif %}">NEXT &gt;</a>
-        {% endif %}
+    <div class="pager">
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        <div class="pager-links">
+            {% if page_obj.has_previous %}
+                <a class="btn btn-secondary btn-sm" href="?page={{ page_obj.previous_page_number }}{% if page_query %}&{{ page_query }}{% endif %}">Previous</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+                <a class="btn btn-secondary btn-sm" href="?page={{ page_obj.next_page_number }}{% if page_query %}&{{ page_query }}{% endif %}">Next</a>
+            {% endif %}
+        </div>
     </div>
 {% endblock %}

@@ -1,26 +1,24 @@
 {% extends "core/base.html" %}
 
-{% block title %}P160 DIRECTORS{% endblock %}
-
-{% block sidebar %}
-<aside class="tt-sidebar">
-    <section>
-        <div class="tt-panel-title">DIRECTORS</div>
-        <div class="tt-panel-body">
-            <a class="tt-btn" href="{% url 'core:company_list' %}">SEARCH P101</a>
-        </div>
-    </section>
-    {% include "core/includes/sync_panel.html" %}
-</aside>
-{% endblock %}
+{% block title %}Directors — COFAX{% endblock %}
 
 {% block content %}
-    <div class="tt-main-title">PAGE 160 — DIRECTORS</div>
-    <section>
-        <div class="tt-panel-body">
-            <p class="tt-hint">OFFICER DATA IS NOT YET BROADCAST ON COFAX.</p>
-            <p><span class="tt-detail-key">PSC REGISTER </span><span class="tt-detail-val">AVAILABLE PER COMPANY AFTER API SYNC</span></p>
-            <p><span class="tt-detail-key">ACTION </span><span class="tt-detail-val">SELECT A COMPANY FROM <a href="{% url 'core:company_list' %}">PAGE 101</a> TO VIEW PSC RECORDS</span></p>
+    <h1 class="page-title">Directors</h1>
+    <p class="page-sub">Officer data is not yet available on COFAX.</p>
+
+    <div class="panel" style="max-width:560px">
+        <div class="panel-body">
+            <p class="detail-item">
+                <span class="detail-key">PSC register</span>
+                <span class="detail-val">Available per company after API sync</span>
+            </p>
+            <p class="detail-item" style="margin-bottom:0">
+                <span class="detail-key">Next step</span>
+                <span class="detail-val">Select a company from <a href="{% url 'core:company_list' %}">search</a> to view PSC records</span>
+            </p>
+            <div class="btn-row">
+                <a class="btn btn-primary" href="{% url 'core:company_list' %}">Go to search</a>
+            </div>
         </div>
-    </section>
+    </div>
 {% endblock %}

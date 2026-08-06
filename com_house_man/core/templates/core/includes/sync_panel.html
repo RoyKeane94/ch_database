@@ -1,23 +1,23 @@
-<section>
-    <div class="tt-panel-title">DATABASE SYNC</div>
-    <div class="tt-panel-body">
-        <div class="tt-sync-label">API ENRICHMENT PROGRESS</div>
-        <div class="tt-sync-bar" id="tt-sync-bar">
+<section class="panel">
+    <div class="panel-head">Database sync</div>
+    <div class="panel-body">
+        <div class="sync-label">API enrichment progress</div>
+        <div class="sync-bar" id="tt-sync-bar">
             {% for i in "012345678901234567890123456789" %}
                 {% if forloop.counter0 < tt_sync_status.filled_blocks %}
-                    <div class="tt-sync-block filled"></div>
+                    <div class="sync-block filled"></div>
                 {% elif forloop.counter0 < tt_sync_status.filled_blocks|add:tt_sync_status.failed_blocks %}
-                    <div class="tt-sync-block failed"></div>
+                    <div class="sync-block failed"></div>
                 {% else %}
-                    <div class="tt-sync-block"></div>
+                    <div class="sync-block"></div>
                 {% endif %}
             {% endfor %}
         </div>
-        <div class="tt-sync-stats">
-            <span id="tt-sync-percent">{{ tt_sync_status.percent }}%</span> COMPLETE<br>
-            SYNCED <span id="tt-sync-synced">{{ tt_sync_status.synced }}</span>
-            PENDING <span id="tt-sync-pending">{{ tt_sync_status.pending }}</span>
-            FAILED <span id="tt-sync-failed">{{ tt_sync_status.failed }}</span>
+        <div class="sync-stats">
+            <strong id="tt-sync-percent">{{ tt_sync_status.percent }}%</strong> complete<br>
+            Synced <span id="tt-sync-synced">{{ tt_sync_status.synced }}</span>
+            · Pending <span id="tt-sync-pending">{{ tt_sync_status.pending }}</span>
+            · Failed <span id="tt-sync-failed">{{ tt_sync_status.failed }}</span>
         </div>
     </div>
 </section>

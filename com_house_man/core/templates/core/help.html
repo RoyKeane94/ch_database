@@ -1,22 +1,32 @@
 {% extends "core/base.html" %}
 
-{% block title %}P100 HELP{% endblock %}
-
-{% block sidebar %}
-<aside class="tt-sidebar">
-    {% include "core/includes/sync_panel.html" %}
-</aside>
-{% endblock %}
+{% block title %}Help — COFAX{% endblock %}
 
 {% block content %}
-    <div class="tt-main-title">HELP</div>
-    <section>
-        <div class="tt-panel-body">
-            <p><span class="tt-detail-key">SEARCH </span>QUERY BY COMPANY NAME OR NUMBER. FILTER BY STATUS AND ACCOUNT TYPE.</p>
-            <p><span class="tt-detail-key">UPLOAD </span>IMPORT COMPANIES FROM CSV. NEW ROWS ARE QUEUED FOR API SYNC.</p>
-            <p><span class="tt-detail-key">CHARGE HOLDERS </span>BROWSE LENDERS AND CREDITORS. CLICK A HOLDER TO VIEW THEIR COMPANIES.</p>
-            <p><span class="tt-detail-key">DATABASE SYNC </span>SHOWS API ENRICHMENT PROGRESS. RUN <span class="tt-detail-val">python manage.py enrich_companies</span> TO FETCH LIVE DATA.</p>
-            <p class="tt-hint">EACH COMPANY REQUIRES 3 API CALLS: PROFILE, CHARGES, PSC.</p>
-        </div>
-    </section>
+    <h1 class="page-title">Help</h1>
+    <p class="page-sub">Everything you need to run the register.</p>
+
+    <div class="signal-grid" style="margin-top:8px">
+        <article class="signal">
+            <h3>Search</h3>
+            <p>Query by company name or number. Filter by status and account type.</p>
+        </article>
+        <article class="signal">
+            <h3>Upload</h3>
+            <p>Import companies from CSV. New rows are queued for API sync.</p>
+        </article>
+        <article class="signal">
+            <h3>Charge holders</h3>
+            <p>Browse lenders and creditors. Click a holder to view their companies.</p>
+        </article>
+    </div>
+
+    <div class="section-gap">
+        <h2 class="section-title">Database sync</h2>
+        <p class="hint">
+            Shows API enrichment progress. Run
+            <code>python manage.py enrich_companies</code>
+            to fetch live data. Each company requires 3 API calls: profile, charges, PSC.
+        </p>
+    </div>
 {% endblock %}

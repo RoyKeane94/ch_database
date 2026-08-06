@@ -54,6 +54,21 @@ class ChargeAdmin(admin.ModelAdmin):
 
 @admin.register(PSC)
 class PSCAdmin(admin.ModelAdmin):
-    list_display = ("psc_id", "company", "name", "kind", "ceased", "notified_on", "ceased_on")
+    list_display = (
+        "psc_id",
+        "company",
+        "name",
+        "controller_company_number",
+        "kind",
+        "ceased",
+        "notified_on",
+        "ceased_on",
+    )
     list_filter = ("kind", "ceased")
-    search_fields = ("psc_id", "company__company_number", "company__company_name", "name")
+    search_fields = (
+        "psc_id",
+        "company__company_number",
+        "company__company_name",
+        "name",
+        "controller_company_number",
+    )

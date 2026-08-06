@@ -51,6 +51,9 @@ class Company(models.Model):
             ),
             models.Index(fields=["company_status"], name="core_co_status_idx"),
             models.Index(fields=["company_name"], name="core_co_name_idx"),
+            models.Index(fields=["accounts_category"], name="core_co_accts_cat_idx"),
+            models.Index(fields=["-created_at"], name="core_co_created_idx"),
+            models.Index(fields=["-date_of_creation"], name="core_co_date_crea_idx"),
         ]
 
     def __str__(self):
@@ -115,6 +118,10 @@ class Charge(models.Model):
 
     class Meta:
         ordering = ["-created_on", "charge_code"]
+        indexes = [
+            models.Index(fields=["company", "satisfied_on"], name="core_ch_co_sat_idx"),
+            models.Index(fields=["status"], name="core_ch_status_idx"),
+        ]
 
     def __str__(self):
         return f"{self.company_id} - {self.charge_code}"
@@ -129,6 +136,7 @@ class PSC(models.Model):
     )
     kind = models.CharField(max_length=100, blank=True)
     name = models.CharField(max_length=255, blank=True)
+    controller_company_number = models.CharField(max_length=8, blank=True, db_index=True)
     ceased = models.BooleanField(default=False)
     notified_on = models.DateField(null=True, blank=True)
     ceased_on = models.DateField(null=True, blank=True)
@@ -138,6 +146,13 @@ class PSC(models.Model):
         ordering = ["-notified_on", "name"]
         verbose_name = "PSC"
         verbose_name_plural = "PSCs"
+        indexes = [
+            models.Index(fields=["name"], name="core_psc_name_idx"),
+            models.Index(
+                fields=["kind", "ceased", "controller_company_number"],
+                name="core_psc_ctrl_idx",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.company_id} - {self.name or 'psc'}"

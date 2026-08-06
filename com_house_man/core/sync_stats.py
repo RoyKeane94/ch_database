@@ -51,6 +51,12 @@ def get_sync_stats(*, use_cache=True):
 
 def invalidate_sync_stats_cache():
     cache.delete(SYNC_STATS_CACHE_KEY)
+    try:
+        from core.list_querysets import invalidate_facet_counts_cache
+
+        invalidate_facet_counts_cache()
+    except Exception:
+        pass
 
 
 def sync_stats_payload(stats):

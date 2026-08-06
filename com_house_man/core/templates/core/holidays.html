@@ -1,24 +1,22 @@
 {% extends "core/base.html" %}
 
-{% block title %}P175 HOLIDAYS{% endblock %}
-
-{% block sidebar %}
-<aside class="tt-sidebar">
-    <section class="tt-panel-yellow">
-        <div class="tt-panel-title">SUN VOUCHERS</div>
-        <div class="tt-panel-body tt-hint">THIS PAGE IS NOT INCLUDED IN YOUR HOLIDAY.</div>
-    </section>
-    {% include "core/includes/sync_panel.html" %}
-</aside>
-{% endblock %}
+{% block title %}Holidays — COFAX{% endblock %}
 
 {% block content %}
-    <div class="tt-main-title">PAGE 175 — MALAGA 7 NTS £150</div>
-    <section>
-        <div class="tt-panel-body">
-            <p class="tt-hint">FLIGHTS NOT INCLUDED. TRANSFER NOT INCLUDED. HOTEL MAY NOT EXIST.</p>
-            <p><span class="tt-detail-key">TERMS </span><span class="tt-detail-val">PRESS <a href="{% url 'core:landing' %}">P100</a> TO RETURN TO THE REGISTER</span></p>
-            <p><span class="tt-detail-key">OFFER ENDS </span><span class="tt-detail-val">1989</span></p>
+    <h1 class="page-title">Malaga · 7 nights · £150</h1>
+    <p class="page-sub">This page is not included in your holiday.</p>
+
+    <div class="panel" style="max-width:560px">
+        <div class="panel-body">
+            <p class="hint">Flights not included. Transfer not included. Hotel may not exist.</p>
+            <p class="detail-item" style="margin-top:16px">
+                <span class="detail-key">Terms</span>
+                <span class="detail-val"><a href="{% url 'core:company_list' %}">Return to the register</a></span>
+            </p>
+            <p class="detail-item" style="margin-bottom:0">
+                <span class="detail-key">Offer ends</span>
+                <span class="detail-val">1989</span>
+            </p>
         </div>
-    </section>
+    </div>
 {% endblock %}

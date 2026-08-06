@@ -1,27 +1,27 @@
 COMPANY_TYPE_LABELS = {
-    "ltd": "PRIV LTD",
+    "ltd": "Private limited",
     "plc": "PLC",
     "llp": "LLP",
-    "limited-partnership": "LTD PTNR",
-    "private-unlimited": "PRIV UNL",
-    "private-limited-guarant-nsc": "LTD GUAR",
-    "oversea-company": "OVERSEAS",
-    "registered-overseas-entity": "ROE",
+    "limited-partnership": "Limited partnership",
+    "private-unlimited": "Private unlimited",
+    "private-limited-guarant-nsc": "Limited by guarantee",
+    "oversea-company": "Overseas",
+    "registered-overseas-entity": "Overseas entity",
 }
 
 STATUS_LABELS = {
-    "active": ("ACTIVE", "tt-status-active"),
-    "dissolved": ("DSLVD", "tt-status-dissolved"),
-    "liquidation": ("LIQUD", "tt-status-dormant"),
-    "administration": ("ADMIN", "tt-status-dormant"),
-    "receivership": ("RCVR", "tt-status-dormant"),
+    "active": ("Active", "status-active"),
+    "dissolved": ("Dissolved", "status-dissolved"),
+    "liquidation": ("Liquidation", "status-pending"),
+    "administration": ("Administration", "status-pending"),
+    "receivership": ("Receivership", "status-pending"),
 }
 
 
 def format_company_type(company):
     company_type = (company.company_type or "").strip().lower()
     if company_type:
-        return COMPANY_TYPE_LABELS.get(company_type, company_type.upper().replace("-", " ")[:10])
+        return COMPANY_TYPE_LABELS.get(company_type, company_type.replace("-", " ").title())
 
     category = (company.company_category or "").lower()
     if "limited liability partnership" in category or category == "llp":
@@ -29,10 +29,10 @@ def format_company_type(company):
     if "public limited" in category or "plc" in category:
         return "PLC"
     if "private limited" in category:
-        return "PRIV LTD"
+        return "Private limited"
     if category:
-        return category.upper()[:10]
-    return "UNKNOWN"
+        return category.title()
+    return "Unknown"
 
 
 def format_status(company):
@@ -40,5 +40,5 @@ def format_status(company):
     if status in STATUS_LABELS:
         return STATUS_LABELS[status]
     if status:
-        return (status.upper()[:6], "tt-status-dormant")
-    return ("UNKNOWN", "tt-status-dormant")
+        return (status.replace("-", " ").title(), "status-pending")
+    return ("Unknown", "status-pending")

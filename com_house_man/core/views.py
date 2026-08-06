@@ -4,20 +4,24 @@ from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Count, Q
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods
 
+from .company_tree import build_ownership_tree, control_chips, format_psc_kind
 from .csv_utils import ensure_required_columns, parse_company_row
 from .exports import export_query_string
 from .list_querysets import (
+    COMPANY_LIST_FIELDS,
     build_charge_holders_queryset,
     build_company_queryset,
     charge_scope_activity_counts,
+    facet_counts_for_scope,
+    global_facet_counts,
 )
-from .models import Company, PersonEntitled
+from .models import Company
 from .sync_stats import get_sync_stats, invalidate_sync_stats_cache, sync_stats_payload
 from .sic_lookup import company_sic_filter_q, sic_labels, sic_search_results, all_sic_codes
 from .teletext import format_company_type, format_status
@@ -72,38 +76,6 @@ def health_check(request):
     )
 
 
-def _landing_context():
-    return {
-        "cofax_config": {
-            "live_endpoint": reverse("core:cofax_live"),
-            "urls": {
-                "search": reverse("core:company_list"),
-                "active": f"{reverse('core:company_list')}?status=active",
-                "by_status": f"{reverse('core:company_list')}?facet=status",
-                "dissolved": f"{reverse('core:company_list')}?status=dissolved",
-                "upload": reverse("core:upload_csv"),
-                "newest": f"{reverse('core:company_list')}?sort=newest",
-                "account_type": f"{reverse('core:company_list')}?facet=account_type",
-                "by_sic": f"{reverse('core:company_list')}?facet=sic",
-                "stats": reverse("core:stats"),
-                "incorporated": f"{reverse('core:company_list')}?sort=incorporated",
-                "directors": reverse("core:directors"),
-                "charges": reverse("core:stats"),
-                "with_charges": f"{reverse('core:company_list')}?has_charges=1",
-                "index": reverse("core:stats"),
-                "holidays": reverse("core:holidays"),
-                "help": reverse("core:help"),
-                "bbc_news": "https://www.bbc.co.uk/news",
-                "bbc_weather": "https://www.bbc.co.uk/weather/2647428",
-            },
-        }
-    }
-
-
-def landing_page(request):
-    return render(request, "core/landing.html", _landing_context())
-
-
 def company_list(request):
     status_filters = [value for value in request.GET.getlist("status") if value]
     accounts_filters = [value for value in request.GET.getlist("accounts_category") if value]
@@ -117,6 +89,8 @@ def company_list(request):
     sic_matches = sic_search_results(sic_query) if sic_query else []
     if facet == "sic" and not sic_query:
         queryset = Company.objects.none()
+    else:
+        queryset = queryset.only(*COMPANY_LIST_FIELDS)
     sic_catalog = list(all_sic_codes()) if facet == "sic" else []
     holder_filters = filter_meta["holder_filters"]
     selected_holders = filter_meta["selected_holders"]
@@ -131,43 +105,10 @@ def company_list(request):
             charge_scope_activity_counts(charge_scope, holder_filters)
         )
 
-    sidebar_scope = Company.objects.all()
-    if facet == "sic" and not sic_query:
-        sidebar_scope = Company.objects.none()
-    elif is_charge_view and charge_scope is not None:
-        sidebar_scope = charge_scope
-    elif search_query:
-        sidebar_scope = sidebar_scope.filter(
-            Q(company_name__icontains=search_query) | Q(company_number__icontains=search_query)
-        )
-    if sic_query and matched_sic_codes:
-        sidebar_scope = sidebar_scope.filter(company_sic_filter_q(matched_sic_codes))
-
-    base_params = {}
-    if search_query:
-        base_params["q"] = search_query
-    if sic_query:
-        base_params["sic"] = sic_query
-    if sort:
-        base_params["sort"] = sort
-    if facet:
-        base_params["facet"] = facet
-    if len(status_filters) == 1 and status_filters[0].lower() == "active":
-        base_params["status"] = status_filters
-    elif len(status_filters) == 1 and status_filters[0].lower() == "dissolved":
-        base_params["status"] = status_filters
-    elif status_filters:
-        base_params["status"] = status_filters
-    if accounts_filters:
-        base_params["accounts_category"] = accounts_filters
-    if holder_filters:
-        base_params["holder"] = [str(holder_id) for holder_id in holder_filters]
-    elif has_charges and not holder_filters:
-        base_params["has_charges"] = "1"
-    if is_charge_view and activity:
-        base_params["activity"] = activity
-
     paginator = Paginator(queryset, RESULTS_PER_PAGE)
+    # Avoid a second COUNT when the page queryset matches the charge scope.
+    if charge_scope is not None and not activity:
+        paginator.count = charge_scope_total
     page_obj = paginator.get_page(request.GET.get("page"))
     total_count = paginator.count
 
@@ -175,12 +116,24 @@ def company_list(request):
         _annotate_company(company)
 
     status_options = []
+    account_options = []
     if not is_charge_view and facet != "sic":
-        status_counts_raw = (
-            sidebar_scope.values("company_status")
-            .annotate(count=Count("company_number"))
-            .order_by("company_status")
-        )
+        use_global_facets = not search_query and not sic_query
+        if use_global_facets:
+            facet_data = global_facet_counts()
+        else:
+            sidebar_scope = Company.objects.all()
+            if search_query:
+                sidebar_scope = sidebar_scope.filter(
+                    Q(company_name__icontains=search_query)
+                    | Q(company_number__icontains=search_query)
+                )
+            if sic_query and matched_sic_codes:
+                sidebar_scope = sidebar_scope.filter(
+                    company_sic_filter_q(matched_sic_codes)
+                )
+            facet_data = facet_counts_for_scope(sidebar_scope)
+
         status_options = [
             {
                 "label": (item["company_status"] or "unknown").upper(),
@@ -188,25 +141,19 @@ def company_list(request):
                 "count": item["count"],
                 "checked": (item["company_status"] or "") in status_filters,
             }
-            for item in status_counts_raw
+            for item in facet_data["status"]
             if item["company_status"]
         ]
-
-    account_counts_raw = (
-        sidebar_scope.values("accounts_category")
-        .annotate(count=Count("company_number"))
-        .order_by("accounts_category")
-    ) if facet != "sic" else []
-    account_options = [
-        {
-            "label": (item["accounts_category"] or "unknown").upper(),
-            "value": item["accounts_category"] or "",
-            "count": item["count"],
-            "checked": (item["accounts_category"] or "") in accounts_filters,
-        }
-        for item in account_counts_raw
-        if item["accounts_category"]
-    ]
+        account_options = [
+            {
+                "label": (item["accounts_category"] or "unknown").upper(),
+                "value": item["accounts_category"] or "",
+                "count": item["count"],
+                "checked": (item["accounts_category"] or "") in accounts_filters,
+            }
+            for item in facet_data["accounts"]
+            if item["accounts_category"]
+        ]
 
     page_query = urlencode(
         {
@@ -289,11 +236,39 @@ def company_list(request):
 def company_detail(request, company_number):
     company = get_object_or_404(Company, pk=company_number)
     _annotate_company(company)
-    charges = company.charges.prefetch_related("persons_entitled").all()
+    charges = (
+        company.charges.only(
+            "charge_code",
+            "company_id",
+            "status",
+            "created_on",
+            "satisfied_on",
+        )
+        .prefetch_related("persons_entitled")
+        .all()
+    )
+    pscs = list(
+        company.pscs.only(
+            "psc_id",
+            "company_id",
+            "name",
+            "kind",
+            "controller_company_number",
+            "ceased",
+            "ceased_on",
+            "notified_on",
+            "natures_of_control",
+        )
+    )
+    for psc in pscs:
+        psc.kind_label = format_psc_kind(psc.kind)
+        psc.control_chips = control_chips(psc.natures_of_control)
+    ownership_tree = build_ownership_tree(company)
     context = {
         "company": company,
         "charges": charges,
-        "pscs": company.pscs.all(),
+        "pscs": pscs,
+        "ownership_tree": ownership_tree,
         "sic_labels": sic_labels(company.sic_codes),
         "active_tab": "search",
     }

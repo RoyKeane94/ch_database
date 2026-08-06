@@ -15,7 +15,7 @@ def _error_context(request, *, page, code, headline, lines, hint="", status):
             "lines": lines,
             "hint": hint,
             "path": request.path,
-            "home_url": reverse("core:landing"),
+            "home_url": reverse("core:company_list"),
             "search_url": reverse("core:company_list"),
             "help_url": reverse("core:help"),
         },
