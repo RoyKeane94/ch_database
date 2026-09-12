@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Charge, Company, PSC, PersonEntitled
+from .models import Charge, Company, Officer, PSC, PersonEntitled
 
 
 class ChargeInline(admin.TabularInline):
@@ -16,6 +16,12 @@ class PSCInline(admin.TabularInline):
     readonly_fields = ("psc_id",)
 
 
+class OfficerInline(admin.TabularInline):
+    model = Officer
+    extra = 0
+    readonly_fields = ("officer_id",)
+
+
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
     list_display = (
@@ -28,7 +34,7 @@ class CompanyAdmin(admin.ModelAdmin):
     )
     list_filter = ("company_status", "company_type", "needs_enrichment", "accounts_overdue")
     search_fields = ("company_number", "company_name")
-    inlines = (ChargeInline, PSCInline)
+    inlines = (ChargeInline, PSCInline, OfficerInline)
 
 
 @admin.register(PersonEntitled)
@@ -71,4 +77,25 @@ class PSCAdmin(admin.ModelAdmin):
         "company__company_name",
         "name",
         "controller_company_number",
+    )
+
+
+@admin.register(Officer)
+class OfficerAdmin(admin.ModelAdmin):
+    list_display = (
+        "officer_id",
+        "company",
+        "name",
+        "officer_role",
+        "appointed_on",
+        "resigned_on",
+        "nationality",
+    )
+    list_filter = ("officer_role",)
+    search_fields = (
+        "officer_id",
+        "company__company_number",
+        "company__company_name",
+        "name",
+        "person_number",
     )

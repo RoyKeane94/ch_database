@@ -1,20 +1,23 @@
 {% extends "core/base.html" %}
 
-{% block title %}Charge holders — COFAX{% endblock %}
+{% block title %}Lenders &amp; capital — COFAX{% endblock %}
 
 {% block sidebar %}
 <aside class="sidebar">
     <section class="panel">
-        <div class="panel-head">Charge holders</div>
+        <div class="panel-head">Lenders &amp; capital</div>
         <div class="panel-body">
             <form method="get">
                 <label class="label" for="q">Holder name</label>
-                <input id="q" class="input" type="text" name="q" value="{{ search_query }}" placeholder="Bank or lender">
+                <input id="q" class="input" type="text" name="q" value="{{ search_query }}" placeholder="Bank, PE fund, ABL…">
                 {% for holder_id in selected_holders %}
                     <input type="hidden" name="holder" value="{{ holder_id }}">
                 {% endfor %}
                 {% if activity %}
                     <input type="hidden" name="activity" value="{{ activity }}">
+                {% endif %}
+                {% if group_holders %}
+                    <input type="hidden" name="group" value="1">
                 {% endif %}
 
                 <div class="label" style="margin-top:14px">Charge status</div>
@@ -23,6 +26,12 @@
                     <a class="chip{% if activity == 'active' %} active{% endif %}" href="?{{ activity_queries.active }}">Outstanding</a>
                     <a class="chip{% if activity == 'inactive' %} active{% endif %}" href="?{{ activity_queries.inactive }}">Satisfied</a>
                 </div>
+
+                <label class="check" style="margin-top:14px">
+                    <input type="checkbox" name="group" value="1" {% if group_holders %}checked{% endif %}
+                           onchange="this.form.submit()">
+                    Merge near-duplicate holders
+                </label>
 
                 <div class="btn-row">
                     <button class="btn btn-primary btn-sm" type="submit">Search</button>
@@ -33,9 +42,17 @@
     </section>
 
     <section class="panel">
+        <div class="panel-head">This month</div>
+        <div class="panel-body">
+            <p class="sync-stats"><strong>{{ new_charges_month }}</strong> new charges registered this month</p>
+        </div>
+    </section>
+
+    <section class="panel">
         <div class="panel-head">Shortcuts</div>
         <div class="panel-body hint">
-            <a href="{{ companies_with_charges_url }}">Companies with charges</a>
+            <a href="{{ companies_with_charges_url }}">Companies with charges</a><br>
+            <a href="{% url 'core:company_list' %}?outstanding_charges=1">Outstanding charges workbench</a>
         </div>
     </section>
 
@@ -44,8 +61,16 @@
 {% endblock %}
 
 {% block content %}
-    <h1 class="page-title">Charge holders</h1>
-    <p class="page-sub">{{ total_count }} holders on file · Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</p>
+    <h1 class="page-title">Lenders &amp; capital</h1>
+    <p class="page-sub">
+        {% if group_holders and grouped_count %}
+            {{ grouped_count }} merged lender groups (from {{ total_count }} raw holders)
+        {% else %}
+            {{ total_count }} charge holders on file
+        {% endif %}
+        · Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        · <strong>{{ new_charges_month }}</strong> new charges this month
+    </p>
 
     <div class="page-actions">
         <a class="btn btn-secondary btn-sm" href="{% url 'core:export_charge_holders' 'json' %}{% if export_query %}?{{ export_query }}{% endif %}">Export JSON</a>
@@ -53,8 +78,7 @@
     </div>
 
     <p class="hint" style="margin-bottom:20px">
-        Click a charge holder to view their companies, or select several and press Find companies.
-        Use charge status to filter outstanding or satisfied charges.
+        Multi-select holders and jump to the opportunity workbench. Enable merge to collapse spelling variants (e.g. Barclays PLC vs BARCLAYS BANK PLC).
     </p>
 
     <form method="get" action="{% url 'core:company_list' %}">
@@ -69,38 +93,61 @@
                         <th>Charge holder</th>
                         <th>Charges</th>
                         <th>Companies</th>
+                        {% if group_holders %}<th>Variants</th>{% endif %}
                     </tr>
                 </thead>
                 <tbody>
-                    {% for holder in page_obj %}
-                        <tr>
-                            <td>
-                                <label class="check" style="margin:0">
-                                    <input
-                                        type="checkbox"
-                                        name="holder"
-                                        value="{{ holder.id }}"
-                                        {% if holder.id in selected_holders %}checked{% endif %}
-                                    >
-                                </label>
-                            </td>
-                            <td>
-                                <div class="company-name">
-                                    <a href="{% url 'core:company_list' %}?holder={{ holder.id }}{% if activity %}&activity={{ activity }}{% endif %}">{{ holder.name }}</a>
-                                </div>
-                            </td>
-                            <td>{{ holder.charge_count }}</td>
-                            <td>
-                                <a href="{% url 'core:company_list' %}?holder={{ holder.id }}{% if activity %}&activity={{ activity }}{% endif %}">
-                                    {% if activity == "active" %}{{ holder.active_company_count }}{% else %}{{ holder.company_count }}{% endif %}
-                                </a>
-                            </td>
-                        </tr>
-                    {% empty %}
-                        <tr>
-                            <td colspan="4" class="empty">No charge holders found</td>
-                        </tr>
-                    {% endfor %}
+                    {% if group_holders %}
+                        {% for group in page_items %}
+                            <tr>
+                                <td>
+                                    <a class="btn btn-secondary btn-sm" href="{% url 'core:company_list' %}?{% for holder_id in group.holder_ids %}holder={{ holder_id }}&{% endfor %}{% if activity %}activity={{ activity }}{% endif %}">View</a>
+                                    {% for holder_id in group.holder_ids %}
+                                        <input type="checkbox" name="holder" value="{{ holder_id }}" hidden class="group-picker" data-group="{{ forloop.parentloop.counter }}">
+                                    {% endfor %}
+                                    <label class="check" style="margin:0">
+                                        <input type="checkbox" onchange="document.querySelectorAll('[data-group=\'{{ forloop.counter }}\']').forEach(el => el.checked = this.checked)">
+                                        Sel
+                                    </label>
+                                </td>
+                                <td>
+                                    <div class="company-name">
+                                        <a href="{% url 'core:company_list' %}?{% for holder_id in group.holder_ids %}holder={{ holder_id }}&{% endfor %}{% if activity %}activity={{ activity }}{% endif %}">{{ group.display_name }}</a>
+                                    </div>
+                                </td>
+                                <td>{{ group.charge_count }}</td>
+                                <td>
+                                    {% if activity == "active" %}{{ group.active_company_count }}{% else %}{{ group.company_count }}{% endif %}
+                                </td>
+                                <td class="cell-compact muted">{{ group.variants|length }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="5" class="empty">No charge holders found</td></tr>
+                        {% endfor %}
+                    {% else %}
+                        {% for holder in page_items %}
+                            <tr>
+                                <td>
+                                    <label class="check" style="margin:0">
+                                        <input type="checkbox" name="holder" value="{{ holder.id }}" {% if holder.id in selected_holders %}checked{% endif %}>
+                                    </label>
+                                </td>
+                                <td>
+                                    <div class="company-name">
+                                        <a href="{% url 'core:company_list' %}?holder={{ holder.id }}{% if activity %}&activity={{ activity }}{% endif %}">{{ holder.name }}</a>
+                                    </div>
+                                </td>
+                                <td>{{ holder.charge_count }}</td>
+                                <td>
+                                    <a href="{% url 'core:company_list' %}?holder={{ holder.id }}{% if activity %}&activity={{ activity }}{% endif %}">
+                                        {% if activity == "active" %}{{ holder.active_company_count }}{% else %}{{ holder.company_count }}{% endif %}
+                                    </a>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="4" class="empty">No charge holders found</td></tr>
+                        {% endfor %}
+                    {% endif %}
                 </tbody>
             </table>
         </div>

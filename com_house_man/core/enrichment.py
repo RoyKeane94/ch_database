@@ -1,9 +1,18 @@
 from django.db import transaction
 from django.utils import timezone
-from requests import HTTPError
+from requests import ConnectionError as RequestsConnectionError
+from requests import HTTPError, Timeout
 
-from core.ch_parsers import parse_charge_item, parse_company_profile, parse_psc_item
-from core.models import Charge, Company, PSC, PersonEntitled
+from core.ch_parsers import (
+    parse_charge_item,
+    parse_company_profile,
+    parse_officer_item,
+    parse_psc_item,
+)
+from core.models import Charge, Company, Officer, PSC, PersonEntitled
+
+
+TRANSIENT_HTTP_STATUSES = {429, 500, 502, 503, 504}
 
 
 def format_enrichment_error(exc):
@@ -12,16 +21,29 @@ def format_enrichment_error(exc):
     return str(exc)[:400]
 
 
+def is_transient_enrichment_error(exc):
+    if isinstance(exc, (Timeout, RequestsConnectionError)):
+        return True
+    if isinstance(exc, HTTPError) and exc.response is not None:
+        return exc.response.status_code in TRANSIENT_HTTP_STATUSES
+    return False
+
+
 def get_or_create_persons_entitled(names):
     persons = []
     for name in names:
-        person, _ = PersonEntitled.objects.get_or_create(name=name)
+        cleaned = " ".join((name or "").split())
+        if not cleaned:
+            continue
+        person, _ = PersonEntitled.objects.get_or_create(name=cleaned)
         persons.append(person)
     return persons
 
 
 @transaction.atomic
-def save_company_enrichment(company, profile, charge_items, psc_items, fetched_at=None):
+def save_company_enrichment(
+    company, profile, charge_items, psc_items, officer_items=None, fetched_at=None
+):
     fetched_at = fetched_at or timezone.now()
     profile_data = parse_company_profile(profile)
 
@@ -35,6 +57,7 @@ def save_company_enrichment(company, profile, charge_items, psc_items, fetched_a
 
     company.charges.all().delete()
     company.pscs.all().delete()
+    company.officers.all().delete()
 
     for item in charge_items:
         parsed = parse_charge_item(item, company.company_number)
@@ -76,9 +99,37 @@ def save_company_enrichment(company, profile, charge_items, psc_items, fetched_a
     if psc_models:
         PSC.objects.bulk_create(psc_models)
 
+    officer_models = []
+    seen_officer_ids = set()
+    for item in officer_items or []:
+        parsed = parse_officer_item(item, company.company_number)
+        officer_id = parsed["officer_id"]
+        if officer_id in seen_officer_ids:
+            continue
+        seen_officer_ids.add(officer_id)
+        officer_models.append(
+            Officer(
+                officer_id=officer_id,
+                company=company,
+                name=parsed["name"],
+                officer_role=parsed["officer_role"],
+                appointed_on=parsed["appointed_on"],
+                resigned_on=parsed["resigned_on"],
+                nationality=parsed["nationality"],
+                occupation=parsed["occupation"],
+                country_of_residence=parsed["country_of_residence"],
+                date_of_birth_month=parsed["date_of_birth_month"],
+                date_of_birth_year=parsed["date_of_birth_year"],
+                person_number=parsed["person_number"],
+            )
+        )
+    if officer_models:
+        Officer.objects.bulk_create(officer_models)
+
 
 def enrich_company(client, company):
     profile = client.get_company_profile(company.company_number)
     charges = client.get_company_charges(company.company_number)
     pscs = client.get_company_pscs(company.company_number)
-    save_company_enrichment(company, profile, charges, pscs)
+    officers = client.get_company_officers(company.company_number)
+    save_company_enrichment(company, profile, charges, pscs, officers)

@@ -396,9 +396,9 @@ code {
 .body-grid {
   flex: 1;
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 300px 1fr;
   gap: 0;
-  max-width: 1400px;
+  max-width: 1600px;
   width: 100%;
   margin: 0 auto;
   padding: 24px;
@@ -1084,6 +1084,169 @@ a.ctree-name:focus-visible {
   color: var(--faint);
 }
 
+/* ——— Opportunity workbench ——— */
+.filter-advanced {
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.filter-advanced summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.workbench-table .table {
+  font-size: 13px;
+}
+
+.workbench-table .table th,
+.workbench-table .table td {
+  padding: 10px 10px;
+}
+
+.cell-compact {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.cell-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: normal;
+  max-width: 180px;
+}
+
+.company-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.status-inline {
+  font-size: 11px;
+}
+
+.type-inline {
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.signal-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  margin: 2px 4px 2px 0;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.signal-badge-danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+/* ——— Company detail sections ——— */
+.opportunity-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.opp-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+}
+
+.opp-chip-warn {
+  background: var(--warning-bg);
+  border-color: #ead9a8;
+  color: var(--warning);
+}
+
+.opp-chip-danger {
+  background: var(--danger-bg);
+  border-color: #f0c4c4;
+  color: var(--danger);
+}
+
+.opp-chip-accent {
+  background: var(--accent-soft);
+  border-color: #d5d0f5;
+  color: var(--accent);
+}
+
+.opp-chip-signal {
+  background: #eef8f3;
+  border-color: #c6e8d4;
+  color: var(--success);
+}
+
+.opp-chip-muted {
+  color: var(--muted);
+}
+
+.section-nav {
+  position: sticky;
+  top: var(--nav-h);
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 24px;
+  padding: 10px 0;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+
+.section-nav a {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  border: 1px solid transparent;
+}
+
+.section-nav a:hover {
+  background: var(--bg-muted);
+  color: var(--ink);
+}
+
+.detail-section {
+  scroll-margin-top: calc(var(--nav-h) + 56px);
+  padding-top: 8px;
+  margin-bottom: 32px;
+}
+
+.detail-section:not(:last-child) {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 28px;
+}
+
 /* ——— Error ——— */
 .error-page {
   min-height: 100vh;
@@ -1164,6 +1327,7 @@ a.ctree-name:focus-visible {
 @media (max-width: 960px) {
   .body-grid {
     grid-template-columns: 1fr;
+    max-width: 100%;
   }
 
   .sidebar {

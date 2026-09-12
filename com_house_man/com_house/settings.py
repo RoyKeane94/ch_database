@@ -120,6 +120,28 @@ DATABASES = {
     )
 }
 
+# Small Railway Postgres plans choke on parallel workers + shared memory.
+_db_options = DATABASES["default"].setdefault("OPTIONS", {})
+_pg_options = _db_options.get("options", "")
+if "max_parallel_workers_per_gather" not in _pg_options:
+    _db_options["options"] = f"{_pg_options} -c max_parallel_workers_per_gather=0".strip()
+
+_cache_backend = os.environ.get("CACHE_BACKEND", "locmem").strip().lower()
+if _cache_backend == "db":
+    _cache_config = {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "django_cache",
+    }
+else:
+    _cache_config = {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "cofax",
+    }
+
+CACHES = {
+    "default": _cache_config,
+}
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -138,12 +160,7 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
-        "LOCATION": "django_cache",
-    }
-}
+# CACHES configured above (LocMem by default — avoids filling Postgres django_cache table)
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

@@ -2,23 +2,91 @@
 
 {% block title %}Directors — COFAX{% endblock %}
 
+{% block sidebar %}
+<aside class="sidebar">
+    <section class="panel">
+        <div class="panel-head">Officers</div>
+        <div class="panel-body">
+            <form method="get">
+                <label class="label" for="q">Officer or company</label>
+                <input id="q" class="input" type="text" name="q" value="{{ search_query }}" placeholder="Name or company number">
+                {% if activity %}
+                    <input type="hidden" name="activity" value="{{ activity }}">
+                {% endif %}
+
+                <div class="label" style="margin-top:14px">Appointment</div>
+                <div class="chip-row" style="margin-bottom:0;margin-top:8px">
+                    <a class="chip{% if not activity %} active{% endif %}" href="?{{ activity_queries.all }}">All</a>
+                    <a class="chip{% if activity == 'active' %} active{% endif %}" href="?{{ activity_queries.active }}">Current</a>
+                    <a class="chip{% if activity == 'inactive' %} active{% endif %}" href="?{{ activity_queries.inactive }}">Resigned</a>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn btn-primary btn-sm" type="submit">Search</button>
+                    <a class="btn btn-secondary btn-sm" href="{% url 'core:directors' %}">Clear</a>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    {% include "core/includes/sync_panel.html" %}
+</aside>
+{% endblock %}
+
 {% block content %}
     <h1 class="page-title">Directors</h1>
-    <p class="page-sub">Officer data is not yet available on COFAX.</p>
+    <p class="page-sub">{{ total_count }} officers on file · Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</p>
 
-    <div class="panel" style="max-width:560px">
-        <div class="panel-body">
-            <p class="detail-item">
-                <span class="detail-key">PSC register</span>
-                <span class="detail-val">Available per company after API sync</span>
-            </p>
-            <p class="detail-item" style="margin-bottom:0">
-                <span class="detail-key">Next step</span>
-                <span class="detail-val">Select a company from <a href="{% url 'core:company_list' %}">search</a> to view PSC records</span>
-            </p>
-            <div class="btn-row">
-                <a class="btn btn-primary" href="{% url 'core:company_list' %}">Go to search</a>
-            </div>
+    <p class="hint" style="margin-bottom:20px">
+        Officer records appear after API sync. Click a company to see the full appointment list.
+    </p>
+
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Officer</th>
+                    <th>Role</th>
+                    <th>Company</th>
+                    <th>Appointed</th>
+                    <th>Resigned</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for officer in page_obj %}
+                    <tr>
+                        <td>
+                            <div class="company-name">{{ officer.name|default:"Unknown" }}</div>
+                            {% if officer.nationality %}<div class="hint">{{ officer.nationality }}</div>{% endif %}
+                        </td>
+                        <td>{{ officer.role_label }}</td>
+                        <td>
+                            <a href="{% url 'core:company_detail' officer.company_id %}">
+                                {{ officer.company.company_name|default:officer.company_id }}
+                            </a>
+                            <div class="hint">{{ officer.company_id }}</div>
+                        </td>
+                        <td>{{ officer.appointed_on|date:"d M Y"|default:"—" }}</td>
+                        <td>{{ officer.resigned_on|date:"d M Y"|default:"—" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="5" class="empty">No officer records found</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pager">
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        <div class="pager-links">
+            {% if page_obj.has_previous %}
+                <a class="btn btn-secondary btn-sm" href="?page={{ page_obj.previous_page_number }}{% if page_query %}&{{ page_query }}{% endif %}">Previous</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+                <a class="btn btn-secondary btn-sm" href="?page={{ page_obj.next_page_number }}{% if page_query %}&{{ page_query }}{% endif %}">Next</a>
+            {% endif %}
         </div>
     </div>
 {% endblock %}

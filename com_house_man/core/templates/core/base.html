@@ -22,7 +22,8 @@
                 <nav class="nav-links" aria-label="Primary">
                     <a href="{% url 'core:company_list' %}" class="{% if active_tab == 'search' %}active{% endif %}">Search</a>
                     <a href="{% url 'core:upload_csv' %}" class="{% if active_tab == 'upload' %}active{% endif %}">Upload</a>
-                    <a href="{% url 'core:stats' %}" class="{% if active_tab == 'index' %}active{% endif %}">Charge holders</a>
+                    <a href="{% url 'core:stats' %}" class="{% if active_tab == 'index' %}active{% endif %}">Lenders &amp; capital</a>
+                    <a href="{% url 'core:directors' %}" class="{% if active_tab == 'directors' %}active{% endif %}">Directors</a>
                     <a href="{% url 'core:help' %}" class="{% if active_tab == 'help' %}active{% endif %}">Help</a>
                 </nav>
             </div>

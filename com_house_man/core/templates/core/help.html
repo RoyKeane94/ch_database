@@ -19,6 +19,10 @@
             <h3>Charge holders</h3>
             <p>Browse lenders and creditors. Click a holder to view their companies.</p>
         </article>
+        <article class="signal">
+            <h3>Directors</h3>
+            <p>Search officers after API sync. Filter current or resigned appointments.</p>
+        </article>
     </div>
 
     <div class="section-gap">
@@ -26,7 +30,7 @@
         <p class="hint">
             Shows API enrichment progress. Run
             <code>python manage.py enrich_companies</code>
-            to fetch live data. Each company requires 3 API calls: profile, charges, PSC.
+            to fetch live data. Each company requires 4 API calls: profile, charges, PSC, officers.
         </p>
     </div>
 {% endblock %}

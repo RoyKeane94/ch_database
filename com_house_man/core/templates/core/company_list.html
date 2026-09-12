@@ -5,14 +5,20 @@
 {% block sidebar %}
 <aside class="sidebar">
     <section class="panel">
-        <div class="panel-head">Search</div>
+        <div class="panel-head">Opportunity filters</div>
         <div class="panel-body">
             <form method="get">
-                <label class="label" for="q">Query</label>
+                <label class="label" for="q">Company name / number</label>
                 <input id="q" class="input" type="text" name="q" value="{{ search_query }}" placeholder="Name or number">
 
                 <label class="label" for="sic" style="margin-top:14px">SIC code / activity</label>
                 <input id="sic" class="input" type="text" name="sic" value="{{ sic_query }}" placeholder="Code or keyword"{% if facet == "sic" and not sic_query %} autofocus{% endif %}>
+
+                <label class="label" for="postcode" style="margin-top:14px">Postcode</label>
+                <input id="postcode" class="input" type="text" name="postcode" value="{{ signal_filters.postcode }}" placeholder="e.g. SW1A">
+
+                <label class="label" for="region" style="margin-top:14px">Region / locality</label>
+                <input id="region" class="input" type="text" name="region" value="{{ signal_filters.region }}" placeholder="e.g. London">
 
                 {% if facet == "sic" %}
                     <input type="hidden" name="facet" value="sic">
@@ -28,34 +34,74 @@
                     {% if activity %}
                         <input type="hidden" name="activity" value="{{ activity }}">
                     {% endif %}
-                {% else %}
-                {% if facet != "sic" %}
-                <div class="label" style="margin-top:14px">Status</div>
-                {% for item in status_options %}
-                    <label class="check">
-                        <input type="checkbox" name="status" value="{{ item.value }}" {% if item.checked %}checked{% endif %}>
-                        {{ item.label }} ({{ item.count }})
-                    </label>
-                {% empty %}
-                    <p class="hint">No status data yet</p>
-                {% endfor %}
-                {% endif %}
                 {% endif %}
 
-                {% if facet != "sic" %}
-                <div class="label" style="margin-top:14px">Account type</div>
-                {% for item in account_options %}
-                    <label class="check">
-                        <input type="checkbox" name="accounts_category" value="{{ item.value }}" {% if item.checked %}checked{% endif %}>
-                        {{ item.label }} ({{ item.count }})
-                    </label>
-                {% empty %}
-                    <p class="hint">No account types yet</p>
-                {% endfor %}
+                <div class="label" style="margin-top:16px">Capital & ownership signals</div>
+                <label class="check">
+                    <input type="checkbox" name="outstanding_charges" value="1" {% if signal_filters.outstanding_charges %}checked{% endif %}>
+                    Has outstanding charges
+                </label>
+                <label class="label" for="charge_since" style="margin-top:10px">New charge since</label>
+                <input id="charge_since" class="input" type="date" name="charge_since" value="{{ signal_filters.charge_since|date:'Y-m-d' }}">
+
+                <label class="label" for="holder_contains" style="margin-top:10px">Holder contains</label>
+                <input id="holder_contains" class="input" type="text" name="holder_contains" value="{{ signal_filters.holder_contains }}" placeholder="Barclays, PE fund, asset-based…">
+
+                <label class="label" for="psc_since" style="margin-top:10px">PSC changed since</label>
+                <input id="psc_since" class="input" type="date" name="psc_since" value="{{ signal_filters.psc_since|date:'Y-m-d' }}">
+
+                <label class="check">
+                    <input type="checkbox" name="new_corporate_psc" value="1" {% if signal_filters.new_corporate_psc %}checked{% endif %}>
+                    New corporate PSC (12m)
+                </label>
+                <label class="check">
+                    <input type="checkbox" name="psc_flip" value="1" {% if signal_filters.psc_flip %}checked{% endif %}>
+                    Individual → corporate flip
+                </label>
+
+                <div class="label" style="margin-top:14px">People & compliance</div>
+                <label class="label" for="director_age_under">Director age under</label>
+                <input id="director_age_under" class="input" type="number" min="18" max="100" name="director_age_under" value="{{ signal_filters.director_age_under|default_if_none:'' }}" placeholder="e.g. 35">
+
+                <label class="label" for="all_directors_over" style="margin-top:10px">All directors over</label>
+                <input id="all_directors_over" class="input" type="number" min="18" max="100" name="all_directors_over" value="{{ signal_filters.all_directors_over|default_if_none:'' }}" placeholder="e.g. 65">
+
+                <label class="check">
+                    <input type="checkbox" name="acquisition_signal" value="1" {% if signal_filters.acquisition_signal %}checked{% endif %}>
+                    Possible acquisition signal
+                </label>
+                <label class="check">
+                    <input type="checkbox" name="accounts_overdue" value="1" {% if signal_filters.accounts_overdue %}checked{% endif %}>
+                    Accounts overdue
+                </label>
+
+                {% if facet != "sic" and not is_charge_view %}
+                <details class="filter-advanced">
+                    <summary>Registry filters</summary>
+                    <div class="label" style="margin-top:12px">Status</div>
+                    {% for item in status_options %}
+                        <label class="check">
+                            <input type="checkbox" name="status" value="{{ item.value }}" {% if item.checked %}checked{% endif %}>
+                            {{ item.label }} ({{ item.count }})
+                        </label>
+                    {% empty %}
+                        <p class="hint">No status data yet</p>
+                    {% endfor %}
+
+                    <div class="label" style="margin-top:12px">Account type</div>
+                    {% for item in account_options %}
+                        <label class="check">
+                            <input type="checkbox" name="accounts_category" value="{{ item.value }}" {% if item.checked %}checked{% endif %}>
+                            {{ item.label }} ({{ item.count }})
+                        </label>
+                    {% empty %}
+                        <p class="hint">No account types yet</p>
+                    {% endfor %}
+                </details>
                 {% endif %}
 
                 <div class="btn-row">
-                    <button class="btn btn-primary btn-sm" type="submit">Search</button>
+                    <button class="btn btn-primary btn-sm" type="submit">Apply filters</button>
                     <a class="btn btn-secondary btn-sm" href="{{ clear_filters_url }}">Clear</a>
                 </div>
             </form>
@@ -85,8 +131,9 @@
     <section class="panel">
         <div class="panel-head">Shortcuts</div>
         <div class="panel-body hint">
-            <a href="{% url 'core:stats' %}">Charge holders</a><br>
-            <a href="{% url 'core:company_list' %}?has_charges=1">Companies with charges</a><br>
+            <a href="{% url 'core:stats' %}">Lenders &amp; capital</a><br>
+            <a href="{% url 'core:company_list' %}?outstanding_charges=1">Outstanding charges</a><br>
+            <a href="{% url 'core:company_list' %}?acquisition_signal=1">Acquisition signals</a><br>
             <a href="{% url 'core:upload_csv' %}">Upload CSV</a>
         </div>
     </section>
@@ -96,34 +143,31 @@
 {% endblock %}
 
 {% block content %}
-    <h1 class="page-title">Results</h1>
+    <h1 class="page-title">Opportunity workbench</h1>
     <p class="page-sub">
         {% if facet == "sic" and not sic_query %}
-            Browse by SIC code — pick a code from the list or type above.
+            Browse by SIC — pick a code from the list or type above.
+        {% elif browse_mode %}
+            Apply at least one filter to scan the register — loading all companies is disabled to protect database capacity.
+            Try <a href="?outstanding_charges=1">outstanding charges</a>,
+            <a href="?accounts_overdue=1">accounts overdue</a>, or a SIC/postcode filter.
         {% elif sic_query %}
             SIC: {{ sic_query }}
-            {% if sic_no_match %}
-                — no matching SIC codes
-            {% elif sic_matches %}
+            {% if sic_no_match %} — no matching SIC codes{% elif sic_matches %}
                 —
                 {% for item in sic_matches|slice:":5" %}
                     <a href="{% url 'core:company_list' %}?sic={{ item.code }}">{{ item.code }}</a>{% if not forloop.last %}, {% endif %}
                 {% endfor %}
-                {% if sic_matches|length > 5 %} (+{{ sic_matches|length|add:"-5" }} more){% endif %}
             {% endif %}
             · {{ total_count }} matching
         {% elif selected_holders %}
-            Charge holders:
-            {% for holder in selected_holders %}
-                {{ holder.name }}{% if not forloop.last %}, {% endif %}
-            {% endfor %}
-            — <a href="{% url 'core:stats' %}">Change</a>
-            · {{ total_count }} matching
+            Holders:
+            {% for holder in selected_holders %}{{ holder.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            — <a href="{% url 'core:stats' %}">Change</a> · {{ total_count }} matching
         {% elif has_charges %}
-            Companies with charges — <a href="{% url 'core:stats' %}">Browse holders</a>
-            · {{ total_count }} matching
+            Companies with charges · {{ total_count }} matching
         {% else %}
-            {{ total_count }} matching · Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            {{ total_count }} companies · scan charges, PSC moves, director age, acquisition cues
         {% endif %}
     </p>
 
@@ -142,13 +186,18 @@
         </div>
     {% endif %}
 
-    <div class="table-wrap">
+    <div class="table-wrap workbench-table">
         <table class="table">
             <thead>
                 <tr>
-                    <th>Company name</th>
-                    <th>Status</th>
-                    <th>Type</th>
+                    <th>Company</th>
+                    <th>SIC</th>
+                    <th>Location</th>
+                    <th>Outstanding charges</th>
+                    <th>PSC change</th>
+                    <th>Directors</th>
+                    <th>Signal</th>
+                    <th>Accounts</th>
                 </tr>
             </thead>
             <tbody>
@@ -160,22 +209,68 @@
                                     {{ company.company_name|default:"Unknown company" }}
                                 </a>
                             </div>
-                            <div class="company-number">{{ company.company_number }}</div>
+                            <div class="company-meta">
+                                <span class="company-number">{{ company.company_number }}</span>
+                                <span class="status status-inline {{ company.tt_status_class }}">
+                                    <span class="dot"></span>{{ company.tt_status_label }}
+                                </span>
+                                <span class="type-inline">{{ company.tt_type_label }}</span>
+                            </div>
+                        </td>
+                        <td class="cell-compact">
+                            {% if company.signal_sic_primary %}
+                                <a href="{% url 'core:company_list' %}?sic={{ company.signal_sic_primary }}">{{ company.signal_sic_primary }}</a>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td class="cell-compact">{{ company.signal_location }}</td>
+                        <td class="cell-compact">
+                            {% if company.signal_charges_count %}
+                                <strong>{{ company.signal_charges_count }}</strong>
+                                {% if company.signal_charges_latest %} · {{ company.signal_charges_latest|date:"M Y" }}{% endif %}
+                                {% if company.signal_charges_holder %}
+                                    <div class="cell-sub">
+                                        {% if company.signal_charges_holder_id %}
+                                            <a href="{% url 'core:company_list' %}?holder={{ company.signal_charges_holder_id }}">{{ company.signal_charges_holder|truncatechars:28 }}</a>
+                                        {% else %}
+                                            {{ company.signal_charges_holder|truncatechars:28 }}
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            {% else %}<span class="muted">None</span>{% endif %}
+                        </td>
+                        <td class="cell-compact">
+                            {% if company.signal_psc_change %}
+                                {{ company.signal_psc_change|date:"M Y" }}
+                            {% else %}<span class="muted">—</span>{% endif %}
+                        </td>
+                        <td class="cell-compact">
+                            {% if company.signal_youngest_director %}
+                                {{ company.signal_youngest_director }}y
+                                {% if company.signal_avg_director_age %} · avg {{ company.signal_avg_director_age }}{% endif %}
+                            {% else %}<span class="muted">—</span>{% endif %}
                         </td>
                         <td>
-                            <span class="status {{ company.tt_status_class }}">
-                                <span class="dot"></span>{{ company.tt_status_label }}
-                            </span>
+                            {% for label in company.signal_acquisition %}
+                                <span class="signal-badge">{{ label }}</span>
+                            {% empty %}<span class="muted">—</span>{% endfor %}
                         </td>
-                        <td>{{ company.tt_type_label }}</td>
+                        <td>
+                            {% if company.accounts_overdue %}
+                                <span class="signal-badge signal-badge-danger">Overdue</span>
+                            {% else %}
+                                <span class="muted">OK</span>
+                            {% endif %}
+                        </td>
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="3" class="empty">
-                            {% if facet == "sic" and not sic_query %}
+                        <td colspan="8" class="empty">
+                            {% if browse_mode %}
+                                Apply a filter in the sidebar to start scanning — full register loads are disabled on this plan.
+                            {% elif facet == "sic" and not sic_query %}
                                 Select a SIC code from the sidebar list
                             {% else %}
-                                No companies found for these filters
+                                No companies match these opportunity filters
                             {% endif %}
                         </td>
                     </tr>

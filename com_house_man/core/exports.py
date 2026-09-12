@@ -129,7 +129,7 @@ def export_charge_holders(request, export_format):
     if export_format not in {"json", "xlsx"}:
         raise Http404
 
-    queryset, search_query, _activity = build_charge_holders_queryset(request)
+    queryset, search_query, _activity, _group = build_charge_holders_queryset(request)
     holders, total, truncated = _truncate_queryset(queryset)
     rows = _holder_rows(holders)
     filename = _holder_filename(search_query, export_format)

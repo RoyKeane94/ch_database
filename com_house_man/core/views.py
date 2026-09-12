@@ -17,14 +17,23 @@ from .list_querysets import (
     COMPANY_LIST_FIELDS,
     build_charge_holders_queryset,
     build_company_queryset,
+    build_officers_queryset,
     charge_scope_activity_counts,
     facet_counts_for_scope,
     global_facet_counts,
+    query_has_list_scope,
 )
 from .models import Company
+from .signals import (
+    build_opportunity_strip,
+    charges_this_month_count,
+    enrich_company_list_page,
+    group_holders_by_normalized,
+    holder_sic_peers,
+)
 from .sync_stats import get_sync_stats, invalidate_sync_stats_cache, sync_stats_payload
 from .sic_lookup import company_sic_filter_q, sic_labels, sic_search_results, all_sic_codes
-from .teletext import format_company_type, format_status
+from .teletext import format_company_type, format_officer_role, format_status
 
 UPLOAD_MAX_ROWS = 10_000
 UPLOAD_CHUNK_SIZE = 1_000
@@ -54,7 +63,7 @@ def _annotate_company(company):
 
 @require_GET
 def sync_status_api(request):
-    return JsonResponse(sync_stats_payload(get_sync_stats(use_cache=False)))
+    return JsonResponse(sync_stats_payload(get_sync_stats(use_cache=True)))
 
 
 @require_GET
@@ -87,10 +96,6 @@ def company_list(request):
     sic_query = filter_meta["sic_query"]
     matched_sic_codes = filter_meta["matched_sic_codes"]
     sic_matches = sic_search_results(sic_query) if sic_query else []
-    if facet == "sic" and not sic_query:
-        queryset = Company.objects.none()
-    else:
-        queryset = queryset.only(*COMPANY_LIST_FIELDS)
     sic_catalog = list(all_sic_codes()) if facet == "sic" else []
     holder_filters = filter_meta["holder_filters"]
     selected_holders = filter_meta["selected_holders"]
@@ -98,26 +103,45 @@ def company_list(request):
     activity = filter_meta["activity"]
     is_charge_view = filter_meta["is_charge_view"]
     charge_scope = filter_meta["charge_scope"]
+    signal_filters = filter_meta["signal_filters"]
+    has_list_scope = query_has_list_scope(
+        request,
+        filter_meta,
+        status_filters=status_filters,
+        accounts_filters=accounts_filters,
+    )
+    browse_mode = not has_list_scope and facet != "sic"
+
+    if facet == "sic" and not sic_query:
+        queryset = Company.objects.none()
+    elif browse_mode:
+        queryset = Company.objects.none()
+    else:
+        queryset = queryset.only(*COMPANY_LIST_FIELDS)
 
     charge_scope_total = charge_active_count = charge_inactive_count = 0
-    if charge_scope is not None:
+    if charge_scope is not None and has_list_scope:
         charge_scope_total, charge_active_count, charge_inactive_count = (
             charge_scope_activity_counts(charge_scope, holder_filters)
         )
 
     paginator = Paginator(queryset, RESULTS_PER_PAGE)
-    # Avoid a second COUNT when the page queryset matches the charge scope.
-    if charge_scope is not None and not activity:
+    if charge_scope is not None and not activity and has_list_scope:
         paginator.count = charge_scope_total
+    elif browse_mode:
+        paginator.count = 0
     page_obj = paginator.get_page(request.GET.get("page"))
     total_count = paginator.count
 
-    for company in page_obj.object_list:
+    page_companies = list(page_obj.object_list)
+    for company in page_companies:
         _annotate_company(company)
+    if page_companies:
+        enrich_company_list_page(page_companies)
 
     status_options = []
     account_options = []
-    if not is_charge_view and facet != "sic":
+    if not is_charge_view and facet != "sic" and not browse_mode:
         use_global_facets = not search_query and not sic_query
         if use_global_facets:
             facet_data = global_facet_counts()
@@ -159,6 +183,18 @@ def company_list(request):
         {
             **({"q": search_query} if search_query else {}),
             **({"sic": sic_query} if sic_query else {}),
+            **({"postcode": signal_filters["postcode"]} if signal_filters["postcode"] else {}),
+            **({"region": signal_filters["region"]} if signal_filters["region"] else {}),
+            **({"outstanding_charges": "1"} if signal_filters["outstanding_charges"] else {}),
+            **({"charge_since": signal_filters["charge_since"].isoformat()} if signal_filters["charge_since"] else {}),
+            **({"holder_contains": signal_filters["holder_contains"]} if signal_filters["holder_contains"] else {}),
+            **({"psc_since": signal_filters["psc_since"].isoformat()} if signal_filters["psc_since"] else {}),
+            **({"new_corporate_psc": "1"} if signal_filters["new_corporate_psc"] else {}),
+            **({"psc_flip": "1"} if signal_filters["psc_flip"] else {}),
+            **({"director_age_under": signal_filters["director_age_under"]} if signal_filters["director_age_under"] is not None else {}),
+            **({"all_directors_over": signal_filters["all_directors_over"]} if signal_filters["all_directors_over"] is not None else {}),
+            **({"acquisition_signal": "1"} if signal_filters["acquisition_signal"] else {}),
+            **({"accounts_overdue": "1"} if signal_filters["accounts_overdue"] else {}),
             **({"status": status_filters} if status_filters and not is_charge_view else {}),
             **({"accounts_category": accounts_filters} if accounts_filters else {}),
             **({"holder": [str(holder_id) for holder_id in holder_filters]} if holder_filters else {}),
@@ -228,6 +264,8 @@ def company_list(request):
         "page_query": page_query,
         "export_query": export_query,
         "show_company_export": show_company_export,
+        "signal_filters": signal_filters,
+        "browse_mode": browse_mode,
         "active_tab": "search",
     }
     return render(request, "core/company_list.html", context)
@@ -263,13 +301,47 @@ def company_detail(request, company_number):
     for psc in pscs:
         psc.kind_label = format_psc_kind(psc.kind)
         psc.control_chips = control_chips(psc.natures_of_control)
+    officers = list(
+        company.officers.only(
+            "officer_id",
+            "company_id",
+            "name",
+            "officer_role",
+            "appointed_on",
+            "resigned_on",
+            "nationality",
+            "occupation",
+            "country_of_residence",
+            "date_of_birth_month",
+            "date_of_birth_year",
+        )
+    )
+    officers.sort(key=lambda officer: (bool(officer.resigned_on), officer.name or ""))
+    for officer in officers:
+        officer.role_label = format_officer_role(officer.officer_role)
     ownership_tree = build_ownership_tree(company)
+    opportunity_strip = build_opportunity_strip(company, list(charges), pscs, officers, ownership_tree)
+
+    holder_ids = {
+        person.id
+        for charge in charges
+        for person in charge.persons_entitled.all()
+    }
+    sic_peers = holder_sic_peers(
+        list(holder_ids),
+        company.sic_codes or [],
+        company.company_number,
+    )
+
     context = {
         "company": company,
         "charges": charges,
         "pscs": pscs,
+        "officers": officers,
         "ownership_tree": ownership_tree,
         "sic_labels": sic_labels(company.sic_codes),
+        "opportunity_strip": opportunity_strip,
+        "sic_peers": sic_peers,
         "active_tab": "search",
     }
     return render(request, "core/company_detail.html", context)
@@ -280,7 +352,38 @@ def help_page(request):
 
 
 def directors_page(request):
-    return render(request, "core/directors.html", {"active_tab": "help"})
+    queryset, search_query, activity = build_officers_queryset(request)
+    paginator = Paginator(queryset, HOLDERS_PER_PAGE)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    for officer in page_obj.object_list:
+        officer.role_label = format_officer_role(officer.officer_role)
+
+    page_params = {}
+    if search_query:
+        page_params["q"] = search_query
+    if activity:
+        page_params["activity"] = activity
+    page_query = urlencode(page_params, doseq=True)
+
+    activity_base = {}
+    if search_query:
+        activity_base["q"] = search_query
+    activity_queries = {
+        "all": urlencode(activity_base, doseq=True),
+        "active": urlencode({**activity_base, "activity": "active"}, doseq=True),
+        "inactive": urlencode({**activity_base, "activity": "inactive"}, doseq=True),
+    }
+
+    context = {
+        "page_obj": page_obj,
+        "total_count": paginator.count,
+        "search_query": search_query,
+        "activity": activity,
+        "activity_queries": activity_queries,
+        "page_query": page_query,
+        "active_tab": "directors",
+    }
+    return render(request, "core/directors.html", context)
 
 
 def charge_holders_page(request):
@@ -290,17 +393,27 @@ def charge_holders_page(request):
         if value.isdigit()
     ]
 
-    queryset, search_query, activity = build_charge_holders_queryset(request)
+    queryset, search_query, activity, group_holders = build_charge_holders_queryset(request)
 
     paginator = Paginator(queryset, HOLDERS_PER_PAGE)
     page_obj = paginator.get_page(request.GET.get("page"))
     total_count = paginator.count
+
+    if group_holders:
+        grouped_holders = group_holders_by_normalized(list(page_obj.object_list))
+        page_items = grouped_holders
+        grouped_count = len(grouped_holders)
+    else:
+        page_items = list(page_obj.object_list)
+        grouped_count = None
 
     page_params = {}
     if search_query:
         page_params["q"] = search_query
     if activity:
         page_params["activity"] = activity
+    if group_holders:
+        page_params["group"] = "1"
     for holder_id in selected_holders:
         page_params.setdefault("holder", []).append(str(holder_id))
     page_query = urlencode(page_params, doseq=True)
@@ -323,7 +436,11 @@ def charge_holders_page(request):
 
     context = {
         "page_obj": page_obj,
+        "page_items": page_items,
+        "group_holders": group_holders,
+        "grouped_count": grouped_count,
         "total_count": total_count,
+        "new_charges_month": charges_this_month_count(),
         "search_query": search_query,
         "selected_holders": selected_holders,
         "activity": activity,

@@ -7,97 +7,92 @@
     <h1 class="page-title">{{ company.company_name|default:"Unknown company" }}</h1>
     <p class="page-sub">
         {{ company.company_number }}
-        · <a href="{{ company.companies_house_url }}" target="_blank" rel="noopener noreferrer">View on Companies House</a>
+        · <span class="status {{ company.tt_status_class }}"><span class="dot"></span>{{ company.tt_status_label }}</span>
+        · {{ company.tt_type_label }}
+        · <a href="{{ company.companies_house_url }}" target="_blank" rel="noopener noreferrer">Companies House</a>
     </p>
 
-    <div class="detail-grid">
-        <div>
-            <p class="detail-item">
-                <span class="detail-key">Type</span>
-                <span class="detail-val">{{ company.company_type|default:"—" }}</span>
-            </p>
-            <p class="detail-item">
-                <span class="detail-key">Status</span>
-                <span class="detail-val">{{ company.company_status|default:"—" }}</span>
-            </p>
-            <p class="detail-item">
-                <span class="detail-key">Jurisdiction</span>
-                <span class="detail-val">{{ company.jurisdiction|default:"—" }}</span>
-            </p>
-            <p class="detail-item">
-                <span class="detail-key">Created</span>
-                <span class="detail-val">{{ company.date_of_creation|date:"d M Y"|default:"—" }}</span>
-            </p>
-            <p class="detail-item">
-                <span class="detail-key">Address</span>
-                <span class="detail-val">{{ company.registered_address_display|default:"—" }}</span>
-            </p>
-        </div>
-        <div>
-            <p class="detail-item">
-                <span class="detail-key">Accounts due</span>
-                <span class="detail-val">{{ company.accounts_next_due|date:"d M Y"|default:"—" }}{% if company.accounts_overdue %} (overdue){% endif %}</span>
-            </p>
-            <p class="detail-item">
-                <span class="detail-key">Confirmation due</span>
-                <span class="detail-val">{{ company.confirmation_next_due|date:"d M Y"|default:"—" }}{% if company.confirmation_overdue %} (overdue){% endif %}</span>
-            </p>
-            <p class="detail-item">
-                <span class="detail-key">Insolvency history</span>
-                <span class="detail-val">{% if company.has_insolvency_history %}Yes{% else %}No{% endif %}</span>
-            </p>
-            <p class="detail-item">
-                <span class="detail-key">SIC codes</span>
-                <span class="detail-val">
-                    {% for item in sic_labels %}
-                        <a href="{% url 'core:company_list' %}?sic={{ item.code }}">{{ item.code }} — {{ item.description }}</a>{% if not forloop.last %}<br>{% endif %}
-                    {% empty %}—{% endfor %}
-                </span>
-            </p>
-        </div>
-        <div>
-            <div class="panel">
-                <div class="panel-head">API fetch</div>
-                <div class="panel-body">
-                    {% if company.last_fetched_at %}
-                        <span class="badge badge-active">Last fetched {{ company.last_fetched_at|date:"d M Y, g:i a" }}</span>
-                    {% elif company.needs_enrichment %}
-                        <span class="badge badge-pending">Pending fetch</span>
-                    {% else %}
-                        <span class="badge">Fetch complete</span>
-                    {% endif %}
-                    {% if company.enrichment_error %}
-                        <p class="hint" style="margin-top:12px;color:var(--danger)">{{ company.enrichment_error }}</p>
-                    {% endif %}
+    <div class="opportunity-strip" role="status" aria-label="Opportunity summary">
+        {% for chip in opportunity_strip %}
+            <span class="opp-chip opp-chip-{{ chip.tone }}">{{ chip.text }}</span>
+        {% endfor %}
+    </div>
+
+    <nav class="section-nav" aria-label="Company sections">
+        <a href="#overview">Overview</a>
+        <a href="#charges">Charges</a>
+        <a href="#ownership">Ownership &amp; PSCs</a>
+        <a href="#officers">Officers</a>
+        <a href="#filings">Filings / events</a>
+        <a href="#notes">Notes</a>
+    </nav>
+
+    <section id="overview" class="detail-section">
+        <h2 class="section-title">Overview</h2>
+        <div class="detail-grid">
+            <div>
+                <p class="detail-item">
+                    <span class="detail-key">Jurisdiction</span>
+                    <span class="detail-val">{{ company.jurisdiction|default:"—" }}</span>
+                </p>
+                <p class="detail-item">
+                    <span class="detail-key">Incorporated</span>
+                    <span class="detail-val">{{ company.date_of_creation|date:"d M Y"|default:"—" }}</span>
+                </p>
+                <p class="detail-item">
+                    <span class="detail-key">Address</span>
+                    <span class="detail-val">{{ company.registered_address_display|default:"—" }}</span>
+                </p>
+            </div>
+            <div>
+                <p class="detail-item">
+                    <span class="detail-key">Accounts due</span>
+                    <span class="detail-val">
+                        {{ company.accounts_next_due|date:"d M Y"|default:"—" }}
+                        {% if company.accounts_overdue %}<span class="signal-badge signal-badge-danger">Overdue</span>{% endif %}
+                    </span>
+                </p>
+                <p class="detail-item">
+                    <span class="detail-key">Confirmation due</span>
+                    <span class="detail-val">
+                        {{ company.confirmation_next_due|date:"d M Y"|default:"—" }}
+                        {% if company.confirmation_overdue %}<span class="signal-badge signal-badge-danger">Overdue</span>{% endif %}
+                    </span>
+                </p>
+                <p class="detail-item">
+                    <span class="detail-key">Insolvency history</span>
+                    <span class="detail-val">{% if company.has_insolvency_history %}Yes{% else %}No{% endif %}</span>
+                </p>
+                <p class="detail-item">
+                    <span class="detail-key">SIC codes</span>
+                    <span class="detail-val">
+                        {% for item in sic_labels %}
+                            <a href="{% url 'core:company_list' %}?sic={{ item.code }}">{{ item.code }} — {{ item.description }}</a>{% if not forloop.last %}<br>{% endif %}
+                        {% empty %}—{% endfor %}
+                    </span>
+                </p>
+            </div>
+            <div>
+                <div class="panel">
+                    <div class="panel-head">Data sync</div>
+                    <div class="panel-body">
+                        {% if company.last_fetched_at %}
+                            <span class="badge badge-active">Last fetched {{ company.last_fetched_at|date:"d M Y, g:i a" }}</span>
+                        {% elif company.needs_enrichment %}
+                            <span class="badge badge-pending">Pending fetch</span>
+                        {% else %}
+                            <span class="badge">Fetch complete</span>
+                        {% endif %}
+                        {% if company.enrichment_error %}
+                            <p class="hint" style="margin-top:12px;color:var(--danger)">{{ company.enrichment_error }}</p>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    {% if ownership_tree.has_links %}
-        <section class="ctree" aria-labelledby="ctree-title">
-            <header class="ctree__head">
-                <h2 class="ctree__title" id="ctree-title">Company tree</h2>
-                <span class="ctree__meta">
-                    {{ ownership_tree.entity_count }}
-                    entit{{ ownership_tree.entity_count|pluralize:"y,ies" }}
-                    · control flows down
-                </span>
-            </header>
-            <ol class="ctree__chain">
-                {% for item in ownership_tree.sequence %}
-                    {% include "core/includes/ctree_item.html" with item=item %}
-                {% endfor %}
-            </ol>
-        </section>
-    {% else %}
-        <div class="section-gap">
-            <h2 class="section-title">Company tree</h2>
-            <p class="hint">No corporate ownership links found for this company in the register yet.</p>
-        </div>
-    {% endif %}
-
-    <div class="section-gap">
+    <section id="charges" class="detail-section">
         <h2 class="section-title">Charges</h2>
         <div class="table-wrap">
             <table class="table">
@@ -129,11 +124,41 @@
                 </tbody>
             </table>
         </div>
-    </div>
+        {% if sic_peers %}
+            <div class="panel" style="margin-top:16px">
+                <div class="panel-head">Same holder · same SIC</div>
+                <div class="panel-body hint">
+                    {% for peer in sic_peers %}
+                        <a href="{% url 'core:company_detail' peer.company_number %}">{{ peer.company_name|default:peer.company_number }}</a>{% if not forloop.last %} · {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </section>
 
-    <div class="section-gap">
-        <h2 class="section-title">Persons with significant control</h2>
-        <ul class="list-plain">
+    <section id="ownership" class="detail-section">
+        <h2 class="section-title">Ownership &amp; PSCs</h2>
+        {% if ownership_tree.has_links %}
+            <section class="ctree" aria-labelledby="ctree-title">
+                <header class="ctree__head">
+                    <h3 class="ctree__title" id="ctree-title">Company tree</h3>
+                    <span class="ctree__meta">
+                        {{ ownership_tree.entity_count }}
+                        entit{{ ownership_tree.entity_count|pluralize:"y,ies" }}
+                        · control flows down
+                    </span>
+                </header>
+                <ol class="ctree__chain">
+                    {% for item in ownership_tree.sequence %}
+                        {% include "core/includes/ctree_item.html" with item=item %}
+                    {% endfor %}
+                </ol>
+            </section>
+        {% else %}
+            <p class="hint">No corporate ownership links found for this company in the register yet.</p>
+        {% endif %}
+
+        <ul class="list-plain" style="margin-top:20px">
             {% for psc in pscs %}
                 <li class="psc-item">
                     <div class="psc-head">
@@ -166,5 +191,41 @@
                 <li class="empty" style="border:none">No PSC records</li>
             {% endfor %}
         </ul>
-    </div>
+    </section>
+
+    <section id="officers" class="detail-section">
+        <h2 class="section-title">Officers</h2>
+        <ul class="list-plain">
+            {% for officer in officers %}
+                <li class="psc-item">
+                    <div class="psc-head">
+                        <div class="company-name">{{ officer.name|default:"Unknown" }}</div>
+                        <div class="psc-badges">
+                            <span class="ot-badge ot-badge-muted">{{ officer.role_label }}</span>
+                            {% if officer.is_resigned %}<span class="ot-badge ot-badge-warn">Resigned</span>{% endif %}
+                        </div>
+                    </div>
+                    <p class="hint" style="margin:8px 0 0">
+                        Appointed {{ officer.appointed_on|date:"d M Y"|default:"—" }}
+                        {% if officer.resigned_on %} · Resigned {{ officer.resigned_on|date:"d M Y" }}{% endif %}
+                        {% if officer.nationality %} · {{ officer.nationality }}{% endif %}
+                        {% if officer.occupation %} · {{ officer.occupation }}{% endif %}
+                        {% if officer.date_of_birth_display %} · Born {{ officer.date_of_birth_display }}{% endif %}
+                    </p>
+                </li>
+            {% empty %}
+                <li class="empty" style="border:none">No officer records</li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <section id="filings" class="detail-section">
+        <h2 class="section-title">Filings / events</h2>
+        <p class="hint">Filing ingestion (acquisitions, share purchases, name changes) is not wired yet. PSC notifications and charge dates above are the live event stream from enrichment.</p>
+    </section>
+
+    <section id="notes" class="detail-section">
+        <h2 class="section-title">Notes</h2>
+        <p class="hint">Private deal notes are not stored in COFAX yet — use your CRM or a local sheet for pipeline commentary.</p>
+    </section>
 {% endblock %}

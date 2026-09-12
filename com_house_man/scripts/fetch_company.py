@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch Companies House profile, charges, and PSC data for a company number."""
+"""Fetch Companies House profile, charges, PSC, and officer data for a company number."""
 
 import argparse
 import json
@@ -12,6 +12,8 @@ import requests
 from dotenv import load_dotenv
 
 BASE_URL = "https://api.company-information.service.gov.uk"
+ITEMS_PER_PAGE = 100
+MAX_LIST_PAGES = 50
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -28,17 +30,51 @@ def normalize_company_number(value):
     return (value or "").strip().zfill(8)
 
 
-def request_json(session, endpoint):
+def request_json(session, endpoint, params=None, *, allow_not_found=False):
     url = f"{BASE_URL}{endpoint}"
-    response = session.get(url, timeout=30)
+    response = session.get(url, params=params, timeout=30)
 
     if response.status_code == 429:
         print("Rate limited — waiting 60s and retrying...", file=sys.stderr)
         time.sleep(60)
-        response = session.get(url, timeout=30)
+        response = session.get(url, params=params, timeout=30)
+
+    if allow_not_found and response.status_code == 404:
+        return None
 
     response.raise_for_status()
     return response.json()
+
+
+def request_paginated_items(session, endpoint):
+    items = []
+    start_index = 0
+
+    for _ in range(MAX_LIST_PAGES):
+        payload = request_json(
+            session,
+            endpoint,
+            params={
+                "items_per_page": ITEMS_PER_PAGE,
+                "start_index": start_index,
+            },
+            allow_not_found=True,
+        )
+        if payload is None:
+            return items
+
+        page_items = payload.get("items") or []
+        items.extend(page_items)
+        total = payload.get("total_results")
+        start_index += len(page_items)
+        if not page_items:
+            break
+        if total is not None and start_index >= total:
+            break
+        if len(page_items) < ITEMS_PER_PAGE:
+            break
+
+    return items
 
 
 def fetch_company_data(company_number):
@@ -49,17 +85,19 @@ def fetch_company_data(company_number):
     session.auth = (api_key, "")
 
     profile = request_json(session, f"/company/{company_number}")
-    charges = request_json(session, f"/company/{company_number}/charges")
-    pscs = request_json(
+    charges = request_paginated_items(session, f"/company/{company_number}/charges")
+    pscs = request_paginated_items(
         session,
         f"/company/{company_number}/persons-with-significant-control",
     )
+    officers = request_paginated_items(session, f"/company/{company_number}/officers")
 
     return {
         "company_number": company_number,
         "profile": profile,
         "charges": charges,
         "persons_with_significant_control": pscs,
+        "officers": officers,
     }
 
 

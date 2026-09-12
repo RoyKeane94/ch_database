@@ -113,6 +113,41 @@ def parse_psc_item(item):
     }
 
 
+def extract_officer_id(item, company_number):
+    self_link = (item.get("links") or {}).get("self", "")
+    marker = "/appointments/"
+    if marker in self_link:
+        appointment_id = self_link.split(marker, 1)[1].strip("/")
+        if appointment_id:
+            return f"{company_number}-{appointment_id}"
+
+    person_number = (item.get("person_number") or "").strip()
+    role = item.get("officer_role") or "unknown"
+    appointed_on = item.get("appointed_on") or ""
+    if person_number:
+        return f"{company_number}-{person_number}-{role}-{appointed_on}"
+
+    name = item.get("name") or "unknown"
+    return f"{company_number}-{name}-{role}-{appointed_on}"
+
+
+def parse_officer_item(item, company_number):
+    date_of_birth = item.get("date_of_birth") or {}
+    return {
+        "officer_id": extract_officer_id(item, company_number),
+        "name": item.get("name", "") or "",
+        "officer_role": item.get("officer_role", "") or "",
+        "appointed_on": parse_api_date(item.get("appointed_on")),
+        "resigned_on": parse_api_date(item.get("resigned_on")),
+        "nationality": item.get("nationality", "") or "",
+        "occupation": item.get("occupation", "") or "",
+        "country_of_residence": item.get("country_of_residence", "") or "",
+        "date_of_birth_month": date_of_birth.get("month"),
+        "date_of_birth_year": date_of_birth.get("year"),
+        "person_number": (item.get("person_number") or "").strip(),
+    }
+
+
 def normalize_company_number(value):
     value = (value or "").strip().upper()
     if not value:

@@ -2,17 +2,21 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from core.ch_client import MIN_REQUEST_INTERVAL, CompaniesHouseClient
-from core.enrichment import enrich_company, format_enrichment_error
+from core.enrichment import (
+    enrich_company,
+    format_enrichment_error,
+    is_transient_enrichment_error,
+)
 from core.models import Company
 from core.sync_stats import invalidate_sync_stats_cache
 
-DEFAULT_BATCH_SIZE = 180
+DEFAULT_BATCH_SIZE = 135
 
 
 class Command(BaseCommand):
     help = (
-        "Fetch Companies House profile, charges, and PSC data for pending companies. "
-        "Makes three API calls per company with built-in rate limiting."
+        "Fetch Companies House profile, charges, PSC, and officer data for pending companies. "
+        "Makes four API calls per company with built-in rate limiting."
     )
 
     def add_arguments(self, parser):
@@ -66,6 +70,12 @@ class Command(BaseCommand):
             except Exception as exc:  # noqa: BLE001
                 failure_count += 1
                 company.enrichment_error = format_enrichment_error(exc)
+                if is_transient_enrichment_error(exc):
+                    company.save(update_fields=["enrichment_error"])
+                    self.stderr.write(
+                        f"Retry later {company.company_number}: {company.enrichment_error}"
+                    )
+                    continue
                 company.needs_enrichment = False
                 company.last_fetched_at = None
                 company.save(

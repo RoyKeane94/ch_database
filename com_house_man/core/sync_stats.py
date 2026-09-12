@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 SYNC_BAR_BLOCKS = 30
 SYNC_STATS_CACHE_KEY = "company_sync_stats"
-SYNC_STATS_CACHE_SECONDS = 60
+SYNC_STATS_CACHE_SECONDS = 300
 
 
 def _aggregate_sync_stats():

@@ -156,3 +156,45 @@ class PSC(models.Model):
 
     def __str__(self):
         return f"{self.company_id} - {self.name or 'psc'}"
+
+
+class Officer(models.Model):
+    officer_id = models.CharField(max_length=255, primary_key=True)
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name="officers",
+    )
+    name = models.CharField(max_length=255, blank=True)
+    officer_role = models.CharField(max_length=100, blank=True)
+    appointed_on = models.DateField(null=True, blank=True)
+    resigned_on = models.DateField(null=True, blank=True)
+    nationality = models.CharField(max_length=100, blank=True)
+    occupation = models.CharField(max_length=255, blank=True)
+    country_of_residence = models.CharField(max_length=100, blank=True)
+    date_of_birth_month = models.PositiveSmallIntegerField(null=True, blank=True)
+    date_of_birth_year = models.PositiveSmallIntegerField(null=True, blank=True)
+    person_number = models.CharField(max_length=64, blank=True)
+
+    class Meta:
+        ordering = ["name", "officer_role"]
+        indexes = [
+            models.Index(fields=["name"], name="core_off_name_idx"),
+            models.Index(fields=["officer_role", "resigned_on"], name="core_off_role_idx"),
+            models.Index(fields=["person_number"], name="core_off_person_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.company_id} - {self.name or 'officer'}"
+
+    @property
+    def is_resigned(self):
+        return bool(self.resigned_on)
+
+    @property
+    def date_of_birth_display(self):
+        if not self.date_of_birth_year:
+            return ""
+        if self.date_of_birth_month and 1 <= self.date_of_birth_month <= 12:
+            return f"{calendar.month_abbr[self.date_of_birth_month]} {self.date_of_birth_year}"
+        return str(self.date_of_birth_year)
