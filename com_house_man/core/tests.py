@@ -6,8 +6,12 @@ from requests import HTTPError
 
 from core.ch_client import ITEMS_PER_PAGE, CompaniesHouseClient
 from core.ch_parsers import extract_officer_id, parse_officer_item
-from core.enrichment import is_transient_enrichment_error, save_company_enrichment
-from core.models import Company, Officer
+from core.enrichment import (
+    enrich_company,
+    is_transient_enrichment_error,
+    save_company_enrichment,
+)
+from core.models import Charge, Company, Officer, PersonEntitled
 from core.signals import (
     build_opportunity_strip,
     group_holders_by_normalized,
@@ -98,6 +102,24 @@ class CompaniesHouseClientTests(SimpleTestCase):
         self.assertEqual(len(items), ITEMS_PER_PAGE + 1)
         self.assertEqual(mock_get.call_count, 2)
 
+    @patch("core.ch_client.requests.get")
+    def test_list_parse_item_slims_each_page(self, mock_get):
+        mock_get.return_value = self._response(
+            200,
+            {
+                "items": [
+                    {"name": "One", "links": {"self": "/x"}, "etag": "abc"},
+                    {"name": "Two", "links": {"self": "/y"}, "etag": "def"},
+                ],
+                "total_results": 2,
+            },
+        )
+        client = CompaniesHouseClient(min_interval=0)
+        items = client.get_company_officers(
+            "01234567", parse_item=lambda item: {"name": item["name"]}
+        )
+        self.assertEqual(items, [{"name": "One"}, {"name": "Two"}])
+
 
 class EnrichmentOfficerTests(TestCase):
     def test_save_company_enrichment_stores_officers(self):
@@ -120,6 +142,83 @@ class EnrichmentOfficerTests(TestCase):
         self.assertEqual(officer.name, "SMITH, Jane")
         self.assertEqual(officer.officer_role, "director")
         self.assertEqual(officer.appointed_on, date(2020, 1, 15))
+
+    def test_save_company_enrichment_bulk_creates_charges_and_holders(self):
+        company = Company.objects.create(company_number="01234567", company_name="Test Ltd")
+        save_company_enrichment(
+            company,
+            {"company_name": "Test Ltd", "company_status": "active"},
+            [
+                {
+                    "charge_code": "012345670001",
+                    "charge_number": 1,
+                    "status": "outstanding",
+                    "persons_entitled": [
+                        {"name": "Barclays Bank PLC"},
+                        {"name": "  Barclays Bank PLC  "},
+                    ],
+                    "particulars": {"contains_fixed_charge": True},
+                    "created_on": "2021-03-01",
+                },
+                {
+                    "charge_code": "012345670002",
+                    "charge_number": 2,
+                    "status": "outstanding",
+                    "persons_entitled": [{"name": "HSBC UK Bank PLC"}],
+                    "created_on": "2022-04-01",
+                },
+            ],
+            [],
+            [],
+        )
+
+        self.assertEqual(Charge.objects.filter(company=company).count(), 2)
+        self.assertEqual(PersonEntitled.objects.count(), 2)
+        first = Charge.objects.get(charge_code="012345670001")
+        self.assertEqual(
+            list(first.persons_entitled.values_list("name", flat=True)),
+            ["Barclays Bank PLC"],
+        )
+        second = Charge.objects.get(charge_code="012345670002")
+        self.assertEqual(
+            list(second.persons_entitled.values_list("name", flat=True)),
+            ["HSBC UK Bank PLC"],
+        )
+
+    def test_enrich_company_parses_before_save(self):
+        company = Company.objects.create(company_number="01234567", company_name="Old")
+        client = Mock()
+        client.get_company_profile.return_value = {
+            "company_name": "Parsed Ltd",
+            "company_status": "active",
+        }
+        client.get_company_charges.return_value = [
+            {
+                "charge_code": "012345670001",
+                "status": "outstanding",
+                "persons_entitled_names": ["NatWest"],
+                "charge_number": 1,
+                "contains_fixed_charge": False,
+                "contains_floating_charge": False,
+                "floating_charge_covers_all": False,
+                "contains_negative_pledge": False,
+                "created_on": date(2021, 1, 1),
+                "delivered_on": None,
+                "satisfied_on": None,
+            }
+        ]
+        client.get_company_pscs.return_value = []
+        client.get_company_officers.return_value = []
+
+        enrich_company(client, company)
+
+        client.get_company_charges.assert_called_once()
+        self.assertIsNotNone(client.get_company_charges.call_args.kwargs.get("parse_item"))
+        company.refresh_from_db()
+        self.assertEqual(company.company_name, "Parsed Ltd")
+        self.assertFalse(company.needs_enrichment)
+        charge = Charge.objects.get(charge_code="012345670001")
+        self.assertEqual(list(charge.persons_entitled.values_list("name", flat=True)), ["NatWest"])
 
     def test_rate_limit_is_transient(self):
         response = Mock()

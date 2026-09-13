@@ -121,10 +121,11 @@ DATABASES = {
 }
 
 # Small Railway Postgres plans choke on parallel workers + shared memory.
-_db_options = DATABASES["default"].setdefault("OPTIONS", {})
-_pg_options = _db_options.get("options", "")
-if "max_parallel_workers_per_gather" not in _pg_options:
-    _db_options["options"] = f"{_pg_options} -c max_parallel_workers_per_gather=0".strip()
+if DATABASES["default"]["ENGINE"].endswith("postgresql"):
+    _db_options = DATABASES["default"].setdefault("OPTIONS", {})
+    _pg_options = _db_options.get("options", "")
+    if "max_parallel_workers_per_gather" not in _pg_options:
+        _db_options["options"] = f"{_pg_options} -c max_parallel_workers_per_gather=0".strip()
 
 _cache_backend = os.environ.get("CACHE_BACKEND", "locmem").strip().lower()
 if _cache_backend == "db":

@@ -22,8 +22,7 @@ class Command(BaseCommand):
             raise CommandError(f"File not found: {path}")
 
         start_time = time.time()
-        existing_numbers = set(Company.objects.values_list("company_number", flat=True))
-        seen_numbers = set()
+        seen_in_chunk = set()
         buffer = []
         processed = 0
         created = 0
@@ -42,22 +41,25 @@ class Command(BaseCommand):
                         continue
 
                     number = company.company_number
-                    if number in existing_numbers or number in seen_numbers:
+                    if number in seen_in_chunk:
                         skipped += 1
                         continue
 
-                    seen_numbers.add(number)
+                    seen_in_chunk.add(number)
                     buffer.append(company)
 
                     if len(buffer) >= CHUNK_SIZE:
-                        Company.objects.bulk_create(buffer, ignore_conflicts=True)
-                        created += len(buffer)
+                        created_count, skipped_count = self._flush_buffer(buffer)
+                        created += created_count
+                        skipped += skipped_count
                         buffer.clear()
+                        seen_in_chunk.clear()
                         self._print_progress(processed, created, skipped, start_time)
 
                 if buffer:
-                    Company.objects.bulk_create(buffer, ignore_conflicts=True)
-                    created += len(buffer)
+                    created_count, skipped_count = self._flush_buffer(buffer)
+                    created += created_count
+                    skipped += skipped_count
                     self._print_progress(processed, created, skipped, start_time)
         except UnicodeDecodeError as exc:
             raise CommandError("Unable to decode CSV. Use UTF-8 encoding.") from exc
@@ -71,6 +73,20 @@ class Command(BaseCommand):
                 f"skipped={skipped}, elapsed={elapsed:.2f}s"
             )
         )
+
+    def _flush_buffer(self, buffer):
+        numbers = [company.company_number for company in buffer]
+        existing = set(
+            Company.objects.filter(company_number__in=numbers).values_list(
+                "company_number", flat=True
+            )
+        )
+        to_create = [
+            company for company in buffer if company.company_number not in existing
+        ]
+        if to_create:
+            Company.objects.bulk_create(to_create, ignore_conflicts=True)
+        return len(to_create), len(buffer) - len(to_create)
 
     def _print_progress(self, processed, created, skipped, start_time):
         elapsed = time.time() - start_time
